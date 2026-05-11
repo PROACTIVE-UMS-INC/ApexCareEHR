@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --topbar-h: 36px;
+  --header-h: 56px;
+  --chrome-h: calc(var(--topbar-h) + var(--header-h));
+  --sidebar-w: 232px;
+  --navy-900: #0b1e35;
+  --navy-800: #102949;
+  --teal-50: #eef9f8;
+  --teal-100: #daf2ef;
+  --teal-600: #0f8a85;
+  --teal-700: #0a6e6a;
+}
+
+@media (max-width: 639px) {
+  :root {
+    --topbar-h: 32px;
+    --header-h: 48px;
+  }
+}
+
+html, body { height: 100%; }
+body {
+  @apply text-slate-900 antialiased;
+  font-family: var(--font-body);
+  font-feature-settings: "ss01", "cv11";
+  background: linear-gradient(180deg, var(--teal-50) 0%, #ffffff 32%, #ffffff 100%);
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Jelly Bean buttons (eCW-style action row) */
+.jb {
+  @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset shadow-chip transition;
+}
+.jb-blue { @apply bg-brand-50 text-brand-800 ring-brand-200 hover:bg-brand-100; }
+.jb-green { @apply bg-emerald-50 text-emerald-800 ring-emerald-200 hover:bg-emerald-100; }
+.jb-amber { @apply bg-amber-50 text-amber-800 ring-amber-200 hover:bg-amber-100; }
+.jb-violet { @apply bg-violet-50 text-violet-800 ring-violet-200 hover:bg-violet-100; }
+.jb-rose { @apply bg-rose-50 text-rose-800 ring-rose-200 hover:bg-rose-100; }
+.jb-slate { @apply bg-slate-100 text-slate-800 ring-slate-200 hover:bg-slate-200; }
+
+.card { @apply rounded-lg bg-white ring-1 ring-slate-200 shadow-sm; }
+.card-pad { @apply p-4; }
+.section-title { @apply text-xs font-semibold tracking-wider text-slate-500 uppercase; }
+
+.tab-link {
+  @apply inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300;
+}
+.tab-link.active {
+  @apply text-brand-700 border-brand-600;
+}
+
+.input {
+  @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition;
+}
+
+.input:disabled {
+  @apply bg-slate-50 text-slate-500 cursor-not-allowed;
+}
+
+.label { @apply block text-xs font-semibold text-slate-600 mb-1; }
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed;
+}
+
+.btn-primary { @apply btn text-white; background: linear-gradient(135deg, var(--teal-600), var(--teal-700)); }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.btn-secondary { @apply btn bg-white text-slate-800 ring-1 ring-inset ring-slate-300 hover:bg-teal-50 transition; }
+.btn-secondary:hover:not(:disabled) { @apply ring-slate-400; }
+.btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-700; }
+
+.kbd {
+  @apply inline-flex items-center rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 text-[10px] font-mono text-slate-600;
+}
+
+.chip {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset;
+}
+
+table.data { @apply w-full text-sm; }
+table.data thead th { @apply text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 px-3 py-2 border-b border-slate-200; }
+table.data tbody td { @apply px-3 py-2 border-b border-slate-100 align-top; }
+table.data tbody tr:hover { @apply bg-slate-50; }
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 639px) {
+  .card-pad { @apply p-3; }
+  .btn { @apply px-2.5 py-1.5 text-xs; }
+  .input { @apply text-base; /* prevents zoom on iOS */ }
+  table.data thead th { @apply px-2 py-1.5 text-[10px]; }
+  table.data tbody td { @apply px-2 py-1.5; }
+}

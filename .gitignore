@@ -1,0 +1,10 @@
+node_modules
+.next
+.env.local
+*.tsbuildinfo
+prisma/dev.db
+prisma/dev.db-journal
+.DS_Store
+
+# Local Netlify folder
+.netlify
