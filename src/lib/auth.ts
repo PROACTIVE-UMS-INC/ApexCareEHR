@@ -27,7 +27,7 @@ const DEMO_USERS: Record<string, Omit<SessionUser, "id">> = {
     firstName: "Mariuska",
     lastName: "Aristica",
     role: "provider",
-    credential: "MD",
+    credential: "PD",
   },
   "np.tan@apexcare.health": {
     email: "np.tan@apexcare.health",
