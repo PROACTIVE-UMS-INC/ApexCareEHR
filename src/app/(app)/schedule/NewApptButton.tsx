@@ -18,6 +18,9 @@ export default function NewApptButton({ providers, services, day }: { providers:
   const [time, setTime] = useState("09:00");
   const [reason, setReason] = useState("");
   const [location, setLocation] = useState("in-office");
+  const [submissionTrack, setSubmissionTrack] = useState("insured");
+  const [telehealthPlatform, setTelehealthPlatform] = useState("google-meet");
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -32,10 +35,16 @@ export default function NewApptButton({ providers, services, day }: { providers:
 
   async function submit() {
     if (!patientId || !providerId) return;
+    const mergedNotes = [
+      `Clinical intake: ${submissionTrack}`,
+      location === "telehealth" ? `Telehealth platform: ${telehealthPlatform}` : "",
+      notes.trim(),
+    ].filter(Boolean).join(" | ");
+
     setLoading(true);
     const res = await fetch("/api/appointments", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ patientId, providerId, serviceTypeId: serviceId, day, time, reason, location }),
+      body: JSON.stringify({ patientId, providerId, serviceTypeId: serviceId, day, time, reason, location, notes: mergedNotes }),
     });
     setLoading(false);
     if (res.ok) {
@@ -80,6 +89,15 @@ export default function NewApptButton({ providers, services, day }: { providers:
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">
+                <label className="block col-span-2">
+                  <span className="label">Submitting New Appointments (Clinical)</span>
+                  <select className="input" value={submissionTrack} onChange={e => setSubmissionTrack(e.target.value)}>
+                    <option value="physical-rehabilitation">Physical Rehabilitation</option>
+                    <option value="lawyers">Lawyers</option>
+                    <option value="workers-comp">Workers Comp</option>
+                    <option value="insured">Insured</option>
+                  </select>
+                </label>
                 <label className="block">
                   <span className="label">Provider</span>
                   <select className="input" value={providerId} onChange={e => setProviderId(e.target.value)}>
@@ -104,10 +122,24 @@ export default function NewApptButton({ providers, services, day }: { providers:
                     <option value="telehealth">Telehealth</option>
                   </select>
                 </label>
+                {location === "telehealth" && (
+                  <label className="block col-span-2">
+                    <span className="label">Telehealth platform</span>
+                    <select className="input" value={telehealthPlatform} onChange={e => setTelehealthPlatform(e.target.value)}>
+                      <option value="google-meet">Google Meet</option>
+                      <option value="phone">Phone</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                )}
               </div>
               <label className="block">
                 <span className="label">Reason / chief complaint</span>
                 <input className="input" value={reason} onChange={e => setReason(e.target.value)} />
+              </label>
+              <label className="block">
+                <span className="label">Billing / referral notes</span>
+                <input className="input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional case details" />
               </label>
             </div>
             <footer className="px-4 py-3 border-t border-slate-200 flex justify-end gap-2">

@@ -50,6 +50,7 @@ async function main() {
     db.serviceType.create({ data: { code: "PT-FOLLOW", name: "PT — Follow-up Treatment", category: "physical-therapy", durationMin: 45, description: "Therapeutic exercise + manual therapy", defaultCpt: "97110", homeEligible: true } }),
     db.serviceType.create({ data: { code: "PT-PAIN", name: "PT — Pain Management", category: "physical-therapy", durationMin: 45, description: "Pain management therapy", defaultCpt: "97140" } }),
     db.serviceType.create({ data: { code: "PT-POSTOP", name: "PT — Post-operative Therapy", category: "physical-therapy", durationMin: 45, description: "Post-surgical rehabilitation", defaultCpt: "97110" } }),
+    db.serviceType.create({ data: { code: "PT-REHAB", name: "Physical Rehabilitation Session", category: "physical-therapy", durationMin: 45, description: "Comprehensive physical rehabilitation treatment plan", defaultCpt: "97110", homeEligible: true } }),
 
     // Wound Care
     db.serviceType.create({ data: { code: "WC-CHRONIC", name: "Wound Care — Chronic Wound", category: "wound-care", durationMin: 45, description: "Chronic wound assessment & dressing", defaultCpt: "97597", homeEligible: true } }),
@@ -60,11 +61,17 @@ async function main() {
     // Other Services
     db.serviceType.create({ data: { code: "OS-PE", name: "Physical Exam", category: "other-services", durationMin: 45, description: "Annual / new-patient physical", defaultCpt: "99204" } }),
     db.serviceType.create({ data: { code: "OS-LAB", name: "Laboratory Draw", category: "other-services", durationMin: 45, description: "In-office labs (CBC, CMP, A1c, lipids)" } }),
+    db.serviceType.create({ data: { code: "OS-EKG", name: "EKG", category: "other-services", durationMin: 30, description: "In-office electrocardiogram", defaultCpt: "93000" } }),
     db.serviceType.create({ data: { code: "OS-WEIGHT", name: "Weight Management Consult", category: "other-services", durationMin: 45, description: "Weight management counseling" } }),
 
     // Aesthetic Medicine
     db.serviceType.create({ data: { code: "AE-BOTOX", name: "Botox Injection", category: "aesthetic-medicine", durationMin: 45, description: "Toxin injection consultation + treatment", defaultCpt: "11900" } }),
     db.serviceType.create({ data: { code: "AE-FILLER", name: "Dermal Filler", category: "aesthetic-medicine", durationMin: 45, description: "Hyaluronic acid filler" } }),
+    db.serviceType.create({ data: { code: "AE-LASER", name: "Laser Aesthetic Consultation", category: "aesthetic-medicine", durationMin: 30, description: "Laser candidacy consult and treatment planning" } }),
+    db.serviceType.create({ data: { code: "AE-ENDOLIFT", name: "Endolaser (Endolift)", category: "aesthetic-medicine", durationMin: 60, description: "Subdermal laser remodeling and contouring" } }),
+    db.serviceType.create({ data: { code: "AE-SKIN-REJ", name: "Laser Skin Rejuvenation", category: "aesthetic-medicine", durationMin: 45, description: "Fractional / resurfacing laser treatment" } }),
+    db.serviceType.create({ data: { code: "AE-HAIR-LASER", name: "Laser Hair Removal", category: "aesthetic-medicine", durationMin: 45, description: "Laser-based long-term hair reduction" } }),
+    db.serviceType.create({ data: { code: "AE-M8", name: "Morpheus8 (Radiofrequency + Microneedling)", category: "aesthetic-medicine", durationMin: 60, description: "RF-assisted microneedling skin tightening" } }),
     db.serviceType.create({ data: { code: "AE-MESO", name: "Mesotherapy", category: "aesthetic-medicine", durationMin: 45, description: "Mesotherapy treatment" } }),
     db.serviceType.create({ data: { code: "AE-PRP-FACE", name: "Facial PRP", category: "aesthetic-medicine", durationMin: 45, description: "Facial platelet-rich plasma therapy" } }),
     db.serviceType.create({ data: { code: "AE-PRP-HAIR", name: "Capillary PRP (Hair)", category: "aesthetic-medicine", durationMin: 45, description: "Capillary PRP for hair restoration" } }),

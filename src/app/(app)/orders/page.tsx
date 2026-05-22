@@ -16,6 +16,17 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   });
   return (
     <Shell user={user} pageTitle="Orders" jellyBeans={<JellyBeans />}>
+      {(sp.type === "lab" || !sp.type) && (
+        <div className="card card-pad mb-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-xs uppercase tracking-wider font-semibold text-slate-500">Lab module</div>
+              <div className="font-semibold text-slate-900">Labcorp routing is enabled for outbound lab orders.</div>
+            </div>
+            <span className="chip bg-emerald-100 text-emerald-800 ring-emerald-200">Labcorp</span>
+          </div>
+        </div>
+      )}
       <div className="card">
         <header className="px-4 py-3 border-b border-slate-200 flex flex-wrap gap-2">
           <Link href="/orders" className={`chip ring-1 ring-inset ${!sp.type && !sp.status ? "bg-brand-100 text-brand-800 ring-brand-200" : "bg-slate-100 text-slate-700 ring-slate-200"}`}>All</Link>

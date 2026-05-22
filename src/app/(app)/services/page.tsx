@@ -5,7 +5,7 @@ import JellyBeans from "@/components/JellyBeans";
 import { colorForCategory } from "@/lib/utils";
 
 const CATEGORY_LABEL: Record<string, string> = {
-  "physical-therapy": "Physical Therapy",
+  "physical-therapy": "Physical Rehabilitation",
   "wound-care": "Wound Care",
   "other-services": "Other Services",
   "aesthetic-medicine": "Aesthetic Medicine",
@@ -13,10 +13,10 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 const CATEGORY_DESC: Record<string, string> = {
-  "physical-therapy": "Functional rehabilitation, pain management, post-operative therapies.",
+  "physical-therapy": "Functional rehabilitation, pain management, and post-operative recovery plans.",
   "wound-care": "Chronic and acute wounds, infection prevention. Evaluation can be conducted at home.",
-  "other-services": "Physical exams, laboratory, weight management.",
-  "aesthetic-medicine": "Botox, fillers, mesotherapy, facial and capillary PRP.",
+  "other-services": "Physical exams, laboratory, EKG, and weight management.",
+  "aesthetic-medicine": "Botox, fillers, Endolift, laser rejuvenation, laser hair removal, Morpheus8, and PRP.",
   "primary-care": "Routine adult primary care visits.",
 };
 

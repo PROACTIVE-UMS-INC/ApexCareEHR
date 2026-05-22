@@ -89,6 +89,11 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                       {a.reason && !a.serviceType && <span>{a.reason}</span>}
                       <span className="ml-auto">{a.provider.lastName}</span>
                     </div>
+                    {a.notes && (
+                      <div className="text-[11px] text-slate-500 truncate" title={a.notes}>
+                        {a.notes}
+                      </div>
+                    )}
                   </Link>
                 );
               })}

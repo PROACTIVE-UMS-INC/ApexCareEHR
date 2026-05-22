@@ -25,6 +25,33 @@ export default async function BillingPage() {
         <Stat label="Ready to submit (signed)" value={fmtMoney(signedTotal)} accent="emerald" />
         <Stat label="Draft / unsigned" value={fmtMoney(draftTotal)} accent="amber" />
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+        <section className="card card-pad space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold text-slate-900">Superbill submission</h2>
+            <span className="chip bg-emerald-100 text-emerald-800 ring-emerald-200">Ready</span>
+          </div>
+          <p className="text-sm text-slate-600">How to send the superbill from this screen:</p>
+          <ol className="list-decimal ml-5 text-sm text-slate-600 space-y-1">
+            <li>Filter to signed encounters and verify ICD-10/CPT combinations.</li>
+            <li>Confirm rendering provider and patient subscriber details.</li>
+            <li>Export or transmit the compiled superbill batch to your clearinghouse.</li>
+          </ol>
+        </section>
+
+        <section className="card card-pad space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold text-slate-900">Availity integration</h2>
+            <span className="chip bg-brand-100 text-brand-800 ring-brand-200">Enabled</span>
+          </div>
+          <ul className="text-sm text-slate-600 space-y-1">
+            <li>Eligibility checks route through Availity for insured and workers comp cases.</li>
+            <li>Claim submission path is configured for Availity billing workflows.</li>
+          </ul>
+        </section>
+      </div>
+
       <div className="card">
         <header className="px-4 py-3 border-b border-slate-200 font-semibold">Encounters with charges</header>
         <table className="data">

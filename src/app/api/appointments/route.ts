@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       endsAt: end,
       location: b.location || "in-office",
       reason: b.reason || null,
+      notes: b.notes || null,
       status: "scheduled",
     },
   });

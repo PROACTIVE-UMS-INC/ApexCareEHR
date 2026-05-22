@@ -8,11 +8,11 @@ import { colorForCategory, fmtDateTime } from "@/lib/utils";
 const MODULES = [
   {
     key: "physical-therapy",
-    title: "Physical Therapy",
+    title: "Physical Rehabilitation",
     lead: "Devon Jones, DPT",
     specialtyHint: "Rehab, mobility, pain reduction, post-op recovery",
     overview: "Structured therapy plans, home exercise programs, and progressive functional rehab for orthopedic and pain management cases.",
-    focus: ["Initial evaluations", "Therapeutic exercise", "Manual therapy", "Post-operative rehab"],
+    focus: ["Initial evaluations", "Therapeutic exercise", "Manual therapy", "Post-operative rehab", "Physical rehabilitation programs"],
     patientUse: ["Low back pain", "Joint recovery", "Mobility deficits", "Chronic pain support"],
   },
   {
@@ -28,10 +28,10 @@ const MODULES = [
     key: "aesthetic-medicine",
     title: "Aesthetic Medicine",
     lead: "Linh Tan, NP",
-    specialtyHint: "Injectables, PRP, skin and hair restoration",
-    overview: "Elective aesthetic services with consult-to-treatment workflows for cosmetic injection and regenerative procedures.",
-    focus: ["Botox", "Dermal fillers", "Mesotherapy", "Facial and capillary PRP"],
-    patientUse: ["Cosmetic consults", "Facial rejuvenation", "Hair restoration", "Maintenance visits"],
+    specialtyHint: "Injectables, lasers, RF microneedling, and regenerative aesthetics",
+    overview: "Elective aesthetic services with consult-to-treatment workflows for injectables, laser treatments, and regenerative procedures.",
+    focus: ["Botox", "Dermal fillers", "Endolaser (Endolift)", "Laser skin rejuvenation", "Laser hair removal", "Morpheus8 (RF + microneedling)", "Facial and capillary PRP"],
+    patientUse: ["Cosmetic consults", "Facial rejuvenation", "Hair reduction", "Skin tightening", "Maintenance visits"],
   },
 ] as const;
 
@@ -62,7 +62,7 @@ export default async function ModulesPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl space-y-2">
               <div className="chip bg-brand-100 text-brand-800 ring-brand-200 font-semibold">Hybrid clinic modules</div>
-              <h2 className="text-2xl font-bold text-slate-900">Specialty landing zones for PT, wound care, and aesthetics</h2>
+              <h2 className="text-2xl font-bold text-slate-900">Specialty landing zones for physical rehabilitation, wound care, and aesthetics</h2>
               <p className="text-sm text-slate-600">
                 These sections are provisioned with matching providers, service types, and seeded encounters so the clinic can work the way each specialty actually runs.
               </p>
