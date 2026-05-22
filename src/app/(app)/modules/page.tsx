@@ -94,6 +94,13 @@ export default async function ModulesPage() {
                     <Stat label="Open notes" value={moduleEncounters.filter(e => e.status === "open").length} />
                   </div>
 
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/modules/${module.slug}`} className="chip bg-brand-100 text-brand-800 ring-brand-200 hover:bg-brand-200">Open workspace</Link>
+                    <Link href="/schedule" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Schedule</Link>
+                    <Link href="/encounters" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Encounters</Link>
+                    <Link href="/billing" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Billing</Link>
+                  </div>
+
                   <div>
                     <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Operational focus</div>
                     <ul className="space-y-1 text-sm text-slate-600">

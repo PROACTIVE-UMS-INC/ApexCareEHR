@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { SessionUser, roleLabel } from "@/lib/auth-types";
 import { initials } from "@/lib/utils";
 import GlobalSearch from "./GlobalSearch";
 import LogoutButton from "./LogoutButton";
 import TopUtilityBar from "./TopUtilityBar";
+import { CLINICAL_MODULES } from "@/lib/modules";
 
 export default function Shell({
   user,
@@ -22,8 +24,9 @@ export default function Shell({
   patientHeader?: React.ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
-  const NAV: { label: string; href: string; icon: React.ReactNode }[] = [
+  const NAV: { label: string; href: string; icon: React.ReactNode; children?: Array<{ label: string; href: string }> }[] = [
     { label: "Dashboard", href: "/dashboard", icon: <Icon.Home /> },
     { label: "Schedule", href: "/schedule", icon: <Icon.Calendar /> },
     { label: "Patients", href: "/patients", icon: <Icon.Users /> },
@@ -31,7 +34,15 @@ export default function Shell({
     { label: "Orders", href: "/orders", icon: <Icon.Beaker /> },
     { label: "Billing", href: "/billing", icon: <Icon.Dollar /> },
     { label: "Messages", href: "/messages", icon: <Icon.Mail /> },
-    { label: "Modules", href: "/modules", icon: <Icon.Stethoscope /> },
+    {
+      label: "Modules",
+      href: "/modules",
+      icon: <Icon.Stethoscope />,
+      children: [
+        { label: "Module Hub", href: "/modules" },
+        ...CLINICAL_MODULES.map((module) => ({ label: module.sidebarLabel, href: `/modules/${module.slug}` })),
+      ],
+    },
     { label: "Services", href: "/services", icon: <Icon.Sparkle /> },
     { label: "Settings", href: "/settings", icon: <Icon.Cog /> },
   ];
@@ -109,16 +120,36 @@ export default function Shell({
         {/* SIDEBAR - DESKTOP */}
         <aside className="w-[var(--sidebar-w)] shrink-0 bg-gradient-to-b from-[var(--navy-900)] to-[var(--navy-800)] border-r border-sky-900/50 sticky top-[var(--chrome-h)] h-[calc(100vh-var(--chrome-h))] hidden md:flex flex-col">
           <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto no-scrollbar">
-            {NAV.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-slate-100 hover:bg-teal-400/20 hover:text-white transition"
-              >
-                <span className="text-slate-300">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map(item => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition ${active ? "bg-teal-400/20 text-white" : "text-slate-100 hover:bg-teal-400/20 hover:text-white"}`}
+                  >
+                    <span className="text-slate-300">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                  {item.children && active && (
+                    <div className="ml-8 mt-1 mb-1 space-y-0.5 border-l border-sky-800/60 pl-2">
+                      {item.children.map((child) => {
+                        const childActive = pathname === child.href;
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={`block rounded-md px-2 py-1 text-xs transition ${childActive ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
           <div className="p-3 border-t border-sky-900/50">
             <a
@@ -150,17 +181,38 @@ export default function Shell({
           }`}
         >
           <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto no-scrollbar">
-            {NAV.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={closeMobileMenu}
-                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-slate-100 hover:bg-teal-400/20 hover:text-white transition"
-              >
-                <span className="text-slate-300">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map(item => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={closeMobileMenu}
+                    className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition ${active ? "bg-teal-400/20 text-white" : "text-slate-100 hover:bg-teal-400/20 hover:text-white"}`}
+                  >
+                    <span className="text-slate-300">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                  {item.children && active && (
+                    <div className="ml-8 mt-1 mb-1 space-y-0.5 border-l border-sky-800/60 pl-2">
+                      {item.children.map((child) => {
+                        const childActive = pathname === child.href;
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={closeMobileMenu}
+                            className={`block rounded-md px-2 py-1 text-xs transition ${childActive ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
           <div className="p-3 border-t border-sky-900/50">
             <a
