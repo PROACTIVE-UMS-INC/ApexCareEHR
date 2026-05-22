@@ -10,34 +10,52 @@ export default async function DashboardPage() {
   const user = await requireSession();
   const today = new Date();
 
-  const [todays, openEncounters, recentPatients, openOrders, unreadMessages, patientCount] = await Promise.all([
-    db.appointment.findMany({
-      where: {
-        startsAt: { gte: startOfDay(today), lte: endOfDay(today) },
-        ...(user.role === "provider" ? { providerId: user.id } : {}),
-      },
-      include: { patient: true, provider: true, serviceType: true },
-      orderBy: { startsAt: "asc" },
-    }),
-    db.encounter.findMany({
-      where: { status: "open", ...(user.role === "provider" ? { providerId: user.id } : {}) },
-      include: { patient: true, provider: true },
-      orderBy: { startedAt: "desc" },
-      take: 6,
-    }),
-    db.patient.findMany({
-      orderBy: { updatedAt: "desc" },
-      take: 6,
-    }),
-    db.order.findMany({
-      where: { status: "pending", ...(user.role === "provider" ? { providerId: user.id } : {}) },
-      include: { patient: true },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-    }),
-    db.message.count({ where: { toUserId: user.id, read: false } }),
-    db.patient.count(),
-  ]);
+  let todays: Array<any> = [];
+  let openEncounters: Array<any> = [];
+  let recentPatients: Array<any> = [];
+  let openOrders: Array<any> = [];
+  let unreadMessages = 0;
+  let patientCount = 0;
+
+  try {
+    const [dbTodays, dbOpenEncounters, dbRecentPatients, dbOpenOrders, dbUnreadMessages, dbPatientCount] = await Promise.all([
+      db.appointment.findMany({
+        where: {
+          startsAt: { gte: startOfDay(today), lte: endOfDay(today) },
+          ...(user.role === "provider" ? { providerId: user.id } : {}),
+        },
+        include: { patient: true, provider: true, serviceType: true },
+        orderBy: { startsAt: "asc" },
+      }),
+      db.encounter.findMany({
+        where: { status: "open", ...(user.role === "provider" ? { providerId: user.id } : {}) },
+        include: { patient: true, provider: true },
+        orderBy: { startedAt: "desc" },
+        take: 6,
+      }),
+      db.patient.findMany({
+        orderBy: { updatedAt: "desc" },
+        take: 6,
+      }),
+      db.order.findMany({
+        where: { status: "pending", ...(user.role === "provider" ? { providerId: user.id } : {}) },
+        include: { patient: true },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+      }),
+      db.message.count({ where: { toUserId: user.id, read: false } }),
+      db.patient.count(),
+    ]);
+
+    todays = dbTodays;
+    openEncounters = dbOpenEncounters;
+    recentPatients = dbRecentPatients;
+    openOrders = dbOpenOrders;
+    unreadMessages = dbUnreadMessages;
+    patientCount = dbPatientCount;
+  } catch {
+    // Keep dashboard responsive when DB initialization fails in serverless runtime.
+  }
 
   const completed = todays.filter(a => a.status === "completed").length;
 

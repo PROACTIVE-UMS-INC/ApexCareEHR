@@ -20,10 +20,27 @@ const CATEGORY_DESC: Record<string, string> = {
   "primary-care": "Routine adult primary care visits.",
 };
 
+const FALLBACK_SERVICES = [
+  { id: "PT-EVAL", name: "PT - Initial Evaluation", category: "physical-therapy", durationMin: 45, homeEligible: true, defaultCpt: "97161", description: "Functional rehab evaluation" },
+  { id: "PT-REHAB", name: "Physical Rehabilitation Session", category: "physical-therapy", durationMin: 45, homeEligible: true, defaultCpt: "97110", description: "Comprehensive physical rehabilitation treatment plan" },
+  { id: "WC-CHRONIC", name: "Wound Care - Chronic Wound", category: "wound-care", durationMin: 45, homeEligible: true, defaultCpt: "97597", description: "Chronic wound assessment and dressing" },
+  { id: "WC-HOMEEVAL", name: "Wound Care - Home Evaluation", category: "wound-care", durationMin: 45, homeEligible: true, defaultCpt: null, description: "Evaluation at patient home" },
+  { id: "OS-EKG", name: "EKG", category: "other-services", durationMin: 30, homeEligible: false, defaultCpt: "93000", description: "In-office electrocardiogram" },
+  { id: "AE-ENDOLIFT", name: "Endolaser (Endolift)", category: "aesthetic-medicine", durationMin: 60, homeEligible: false, defaultCpt: null, description: "Subdermal laser remodeling and contouring" },
+  { id: "AE-SKIN-REJ", name: "Laser Skin Rejuvenation", category: "aesthetic-medicine", durationMin: 45, homeEligible: false, defaultCpt: null, description: "Fractional / resurfacing laser treatment" },
+  { id: "AE-HAIR-LASER", name: "Laser Hair Removal", category: "aesthetic-medicine", durationMin: 45, homeEligible: false, defaultCpt: null, description: "Laser-based long-term hair reduction" },
+  { id: "AE-M8", name: "Morpheus8 (Radiofrequency + Microneedling)", category: "aesthetic-medicine", durationMin: 60, homeEligible: false, defaultCpt: null, description: "RF-assisted microneedling skin tightening" },
+];
+
 export default async function ServicesPage() {
   const user = await requireSession();
-  const services = await db.serviceType.findMany({ where: { active: true }, orderBy: [{ category: "asc" }, { name: "asc" }] });
-  const grouped: Record<string, typeof services> = {};
+  let services: Array<any> = FALLBACK_SERVICES;
+  try {
+    services = await db.serviceType.findMany({ where: { active: true }, orderBy: [{ category: "asc" }, { name: "asc" }] });
+  } catch {
+    // Keep the service catalog available even when DB initialization fails.
+  }
+  const grouped: Record<string, Array<any>> = {};
   for (const s of services) (grouped[s.category] ||= []).push(s);
 
   return (

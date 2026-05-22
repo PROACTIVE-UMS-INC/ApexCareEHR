@@ -13,6 +13,13 @@ export type ClinicalModuleDef = {
   specialtySearchTerms: string[];
 };
 
+export type ModuleServiceFallback = {
+  id: string;
+  name: string;
+  category: ClinicalModuleKey;
+  description?: string;
+};
+
 export const CLINICAL_MODULES: ClinicalModuleDef[] = [
   {
     key: "physical-therapy",
@@ -72,3 +79,22 @@ export const CLINICAL_MODULES: ClinicalModuleDef[] = [
 export function getModuleBySlug(slug: string) {
   return CLINICAL_MODULES.find((m) => m.slug === slug);
 }
+
+export const MODULE_SERVICE_FALLBACKS: ModuleServiceFallback[] = [
+  { id: "PT-EVAL", name: "PT - Initial Evaluation", category: "physical-therapy" },
+  { id: "PT-FOLLOW", name: "PT - Follow-up Treatment", category: "physical-therapy" },
+  { id: "PT-PAIN", name: "PT - Pain Management", category: "physical-therapy" },
+  { id: "PT-POSTOP", name: "PT - Post-operative Therapy", category: "physical-therapy" },
+  { id: "PT-REHAB", name: "Physical Rehabilitation Session", category: "physical-therapy" },
+  { id: "WC-CHRONIC", name: "Wound Care - Chronic Wound", category: "wound-care" },
+  { id: "WC-ACUTE", name: "Wound Care - Acute Wound", category: "wound-care" },
+  { id: "WC-INFECT", name: "Wound Care - Infection Prevention", category: "wound-care" },
+  { id: "WC-HOMEEVAL", name: "Wound Care - Home Evaluation", category: "wound-care" },
+  { id: "AE-BOTOX", name: "Botox Injection", category: "aesthetic-medicine" },
+  { id: "AE-FILLER", name: "Dermal Filler", category: "aesthetic-medicine" },
+  { id: "AE-LASER", name: "Laser Aesthetic Consultation", category: "aesthetic-medicine" },
+  { id: "AE-ENDOLIFT", name: "Endolaser (Endolift)", category: "aesthetic-medicine" },
+  { id: "AE-SKIN-REJ", name: "Laser Skin Rejuvenation", category: "aesthetic-medicine" },
+  { id: "AE-HAIR-LASER", name: "Laser Hair Removal", category: "aesthetic-medicine" },
+  { id: "AE-M8", name: "Morpheus8 (Radiofrequency + Microneedling)", category: "aesthetic-medicine" },
+];

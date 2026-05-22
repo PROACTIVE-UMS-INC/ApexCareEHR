@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { colorForCategory, fmtDateTime } from "@/lib/utils";
-import { getModuleBySlug } from "@/lib/modules";
+import { getModuleBySlug, MODULE_SERVICE_FALLBACKS } from "@/lib/modules";
 
 export default async function ModuleDetailPage({ params }: { params: Promise<{ moduleSlug: string }> }) {
   const { moduleSlug } = await params;
@@ -14,28 +14,42 @@ export default async function ModuleDetailPage({ params }: { params: Promise<{ m
 
   const user = await requireSession();
 
-  const [providers, services, upcomingAppointments, recentEncounters] = await Promise.all([
-    db.user.findMany({
-      where: { active: true, role: "provider" },
-      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    }),
-    db.serviceType.findMany({
-      where: { active: true, category: moduleDef.key },
-      orderBy: [{ name: "asc" }],
-    }),
-    db.appointment.findMany({
-      where: { startsAt: { gte: new Date() }, serviceType: { category: moduleDef.key } },
-      include: { patient: true, provider: true, serviceType: true },
-      orderBy: { startsAt: "asc" },
-      take: 12,
-    }),
-    db.encounter.findMany({
-      where: { status: { in: ["open", "signed"] } },
-      include: { patient: true, provider: true, appointment: { include: { serviceType: true } } },
-      orderBy: { startedAt: "desc" },
-      take: 30,
-    }),
-  ]);
+  let providers: Array<any> = [];
+  let services: Array<any> = MODULE_SERVICE_FALLBACKS;
+  let upcomingAppointments: Array<any> = [];
+  let recentEncounters: Array<any> = [];
+
+  try {
+    const [dbProviders, dbServices, dbUpcomingAppointments, dbRecentEncounters] = await Promise.all([
+      db.user.findMany({
+        where: { active: true, role: "provider" },
+        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      }),
+      db.serviceType.findMany({
+        where: { active: true, category: moduleDef.key },
+        orderBy: [{ name: "asc" }],
+      }),
+      db.appointment.findMany({
+        where: { startsAt: { gte: new Date() }, serviceType: { category: moduleDef.key } },
+        include: { patient: true, provider: true, serviceType: true },
+        orderBy: { startsAt: "asc" },
+        take: 12,
+      }),
+      db.encounter.findMany({
+        where: { status: { in: ["open", "signed"] } },
+        include: { patient: true, provider: true, appointment: { include: { serviceType: true } } },
+        orderBy: { startedAt: "desc" },
+        take: 30,
+      }),
+    ]);
+
+    providers = dbProviders;
+    services = dbServices;
+    upcomingAppointments = dbUpcomingAppointments;
+    recentEncounters = dbRecentEncounters;
+  } catch {
+    // Keep module detail pages available even when the DB cannot initialize.
+  }
 
   const lead = providers.find((provider) => {
     const specialty = provider.specialty?.toLowerCase() || "";

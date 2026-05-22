@@ -4,27 +4,41 @@ import { db } from "@/lib/db";
 import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { colorForCategory, fmtDateTime } from "@/lib/utils";
-import { CLINICAL_MODULES } from "@/lib/modules";
+import { CLINICAL_MODULES, MODULE_SERVICE_FALLBACKS } from "@/lib/modules";
 
 export default async function ModulesPage() {
   const user = await requireSession();
 
-  const [providers, serviceTypes, appointments, encounters] = await Promise.all([
-    db.user.findMany({ where: { active: true, role: "provider" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
-    db.serviceType.findMany({ where: { active: true, category: { in: CLINICAL_MODULES.map((m) => m.key) } }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
-    db.appointment.findMany({
-      where: { startsAt: { gte: new Date() } },
-      include: { patient: true, provider: true, serviceType: true },
-      orderBy: { startsAt: "asc" },
-      take: 24,
-    }),
-    db.encounter.findMany({
-      where: { status: { in: ["open", "signed"] } },
-      include: { patient: true, provider: true },
-      orderBy: { startedAt: "desc" },
-      take: 24,
-    }),
-  ]);
+  let providers: Array<any> = [];
+  let serviceTypes: Array<any> = MODULE_SERVICE_FALLBACKS;
+  let appointments: Array<any> = [];
+  let encounters: Array<any> = [];
+
+  try {
+    const [dbProviders, dbServiceTypes, dbAppointments, dbEncounters] = await Promise.all([
+      db.user.findMany({ where: { active: true, role: "provider" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
+      db.serviceType.findMany({ where: { active: true, category: { in: CLINICAL_MODULES.map((m) => m.key) } }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
+      db.appointment.findMany({
+        where: { startsAt: { gte: new Date() } },
+        include: { patient: true, provider: true, serviceType: true },
+        orderBy: { startsAt: "asc" },
+        take: 24,
+      }),
+      db.encounter.findMany({
+        where: { status: { in: ["open", "signed"] } },
+        include: { patient: true, provider: true },
+        orderBy: { startedAt: "desc" },
+        take: 24,
+      }),
+    ]);
+
+    providers = dbProviders;
+    serviceTypes = dbServiceTypes;
+    appointments = dbAppointments;
+    encounters = dbEncounters;
+  } catch {
+    // Keep modules operational with static service fallbacks when DB is unavailable.
+  }
 
   return (
     <Shell user={user} pageTitle="Clinical Modules" jellyBeans={<JellyBeans />}>
