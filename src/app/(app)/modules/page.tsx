@@ -4,43 +4,14 @@ import { db } from "@/lib/db";
 import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { colorForCategory, fmtDateTime } from "@/lib/utils";
-
-const MODULES = [
-  {
-    key: "physical-therapy",
-    title: "Physical Rehabilitation",
-    lead: "Devon Jones, DPT",
-    specialtyHint: "Rehab, mobility, pain reduction, post-op recovery",
-    overview: "Structured therapy plans, home exercise programs, and progressive functional rehab for orthopedic and pain management cases.",
-    focus: ["Initial evaluations", "Therapeutic exercise", "Manual therapy", "Post-operative rehab", "Physical rehabilitation programs"],
-    patientUse: ["Low back pain", "Joint recovery", "Mobility deficits", "Chronic pain support"],
-  },
-  {
-    key: "wound-care",
-    title: "Wound Care",
-    lead: "Aaron Smith, MD",
-    specialtyHint: "Chronic ulcers, acute wounds, home wound visits",
-    overview: "In-clinic and home-based wound management with dressing changes, infection prevention, and debridement workflows.",
-    focus: ["Chronic wound follow-up", "Acute wound care", "Home evaluation", "Debridement and dressing"],
-    patientUse: ["Diabetic ulcers", "Pressure injuries", "Post-surgical wounds", "Homebound patients"],
-  },
-  {
-    key: "aesthetic-medicine",
-    title: "Aesthetic Medicine",
-    lead: "Linh Tan, NP",
-    specialtyHint: "Injectables, lasers, RF microneedling, and regenerative aesthetics",
-    overview: "Elective aesthetic services with consult-to-treatment workflows for injectables, laser treatments, and regenerative procedures.",
-    focus: ["Botox", "Dermal fillers", "Endolaser (Endolift)", "Laser skin rejuvenation", "Laser hair removal", "Morpheus8 (RF + microneedling)", "Facial and capillary PRP"],
-    patientUse: ["Cosmetic consults", "Facial rejuvenation", "Hair reduction", "Skin tightening", "Maintenance visits"],
-  },
-] as const;
+import { CLINICAL_MODULES } from "@/lib/modules";
 
 export default async function ModulesPage() {
   const user = await requireSession();
 
   const [providers, serviceTypes, appointments, encounters] = await Promise.all([
     db.user.findMany({ where: { active: true, role: "provider" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
-    db.serviceType.findMany({ where: { active: true, category: { in: MODULES.map(m => m.key) } }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
+    db.serviceType.findMany({ where: { active: true, category: { in: CLINICAL_MODULES.map((m) => m.key) } }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
     db.appointment.findMany({
       where: { startsAt: { gte: new Date() } },
       include: { patient: true, provider: true, serviceType: true },
@@ -77,7 +48,7 @@ export default async function ModulesPage() {
         </section>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          {MODULES.map(module => {
+          {CLINICAL_MODULES.map(module => {
             const moduleServices = serviceTypes.filter(service => service.category === module.key);
             const moduleAppointments = appointments.filter(appointment => appointment.serviceType?.category === module.key);
             const moduleEncounters = encounters.filter(encounter => encounter.provider?.specialty?.toLowerCase().includes(module.key === "physical-therapy" ? "physical therapy" : module.key === "wound-care" ? "wound care" : "aesthetic") || encounter.chiefComplaint?.toLowerCase().includes(module.key === "physical-therapy" ? "pt" : module.key === "wound-care" ? "wound" : "aesthetic"));
@@ -89,7 +60,11 @@ export default async function ModulesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Module</div>
-                      <h3 className="text-lg font-bold text-slate-900">{module.title}</h3>
+                      <h3 className="text-lg font-bold text-slate-900">
+                        <Link href={`/modules/${module.slug}`} className="hover:underline">
+                          {module.title}
+                        </Link>
+                      </h3>
                     </div>
                     <span className={`chip ${colorForCategory(module.key)} font-semibold`}>{moduleServices.length} services</span>
                   </div>
@@ -159,7 +134,7 @@ export default async function ModulesPage() {
         <section className="card">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Recent module activity</header>
           <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
-            {MODULES.map(module => {
+            {CLINICAL_MODULES.map(module => {
               const latestEncounter = encounters.find(encounter => encounter.provider?.specialty?.toLowerCase().includes(module.key === "physical-therapy" ? "physical therapy" : module.key === "wound-care" ? "wound care" : "aesthetic"));
               const latestAppointment = appointments.find(appointment => appointment.serviceType?.category === module.key);
 
