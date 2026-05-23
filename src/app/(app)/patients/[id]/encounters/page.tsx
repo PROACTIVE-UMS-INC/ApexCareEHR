@@ -8,14 +8,21 @@ export default async function EncList({ params }: { params: Promise<{ id: string
   const { id } = await params;
   const user = await requireSession();
   const ctx = await loadPatientCtx(id);
-  const enc = await db.encounter.findMany({
-    where: { patientId: id },
-    include: { provider: true, diagnoses: true, charges: true, _count: { select: { orders: true } } },
-    orderBy: { startedAt: "desc" },
-  });
+  let enc: any[] = [];
+  let dataUnavailable = Boolean((ctx as any).dataUnavailable);
+  try {
+    enc = await db.encounter.findMany({
+      where: { patientId: id },
+      include: { provider: true, diagnoses: true, charges: true, _count: { select: { orders: true } } },
+      orderBy: { startedAt: "desc" },
+    });
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <PatientChart user={user} {...ctx} active="encounters">
+      {dataUnavailable && <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">Encounter data is temporarily unavailable.</div>}
       <section className="card">
         <header className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
           <div className="font-semibold">Encounters ({enc.length})</div>

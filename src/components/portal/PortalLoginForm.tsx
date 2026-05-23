@@ -15,21 +15,26 @@ export default function PortalLoginForm() {
     setSubmitting(true);
     setError(null);
 
-    const res = await fetch("/api/portal/auth/login", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mrn, dob }),
-    });
+    try {
+      const res = await fetch("/api/portal/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mrn, dob }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Unable to sign in");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError((data as { error?: string }).error ?? "Unable to sign in");
+        setSubmitting(false);
+        return;
+      }
+
+      router.push("/portal/dashboard");
+      router.refresh();
+    } catch {
+      setError("Portal is temporarily unavailable. Please try again.");
       setSubmitting(false);
-      return;
     }
-
-    router.push("/portal/dashboard");
-    router.refresh();
   }
 
   return (

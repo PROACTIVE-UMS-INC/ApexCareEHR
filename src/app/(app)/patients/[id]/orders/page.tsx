@@ -8,10 +8,17 @@ export default async function PtOrders({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const user = await requireSession();
   const ctx = await loadPatientCtx(id);
-  const orders = await db.order.findMany({ where: { patientId: id }, include: { provider: true }, orderBy: { createdAt: "desc" } });
+  let orders: any[] = [];
+  let dataUnavailable = Boolean((ctx as any).dataUnavailable);
+  try {
+    orders = await db.order.findMany({ where: { patientId: id }, include: { provider: true }, orderBy: { createdAt: "desc" } });
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <PatientChart user={user} {...ctx} active="orders">
+      {dataUnavailable && <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">Order data is temporarily unavailable.</div>}
       <section className="card">
         <header className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
           <div className="font-semibold">Orders ({orders.length})</div>

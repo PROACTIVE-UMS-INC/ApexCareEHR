@@ -8,10 +8,17 @@ export default async function MedsPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const user = await requireSession();
   const ctx = await loadPatientCtx(id);
-  const meds = await db.medication.findMany({ where: { patientId: id }, orderBy: { createdAt: "desc" } });
+  let meds: any[] = [];
+  let dataUnavailable = Boolean((ctx as any).dataUnavailable);
+  try {
+    meds = await db.medication.findMany({ where: { patientId: id }, orderBy: { createdAt: "desc" } });
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <PatientChart user={user} {...ctx} active="medications">
+      {dataUnavailable && <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">Medication data is temporarily unavailable.</div>}
       <section className="card">
         <header className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
           <div className="font-semibold">Medication List ({meds.length})</div>

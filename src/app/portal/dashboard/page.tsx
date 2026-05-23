@@ -5,23 +5,33 @@ import { requirePortalSession } from "@/lib/portalAuth";
 export default async function PortalDashboardPage() {
   const session = await requirePortalSession();
 
-  const [upcoming, recentDocs, unreadCount] = await Promise.all([
-    db.appointment.findMany({
-      where: { patientId: session.patientId, startsAt: { gte: new Date() } },
-      include: { provider: true, serviceType: true },
-      orderBy: { startsAt: "asc" },
-      take: 5,
-    }),
-    db.document.findMany({
-      where: { patientId: session.patientId },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-    db.message.count({ where: { patientId: session.patientId, read: false } }),
-  ]);
+  let upcoming: Array<{ id: string; startsAt: Date; reason: string | null; provider: { firstName: string; lastName: string }; serviceType: { name: string } | null }> = [];
+  let recentDocs: Array<{ id: string; title: string; category: string | null; createdAt: Date }> = [];
+  let unreadCount = 0;
+  let dataUnavailable = false;
+
+  try {
+    [upcoming, recentDocs, unreadCount] = await Promise.all([
+      db.appointment.findMany({
+        where: { patientId: session.patientId, startsAt: { gte: new Date() } },
+        include: { provider: true, serviceType: true },
+        orderBy: { startsAt: "asc" },
+        take: 5,
+      }),
+      db.document.findMany({
+        where: { patientId: session.patientId },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      db.message.count({ where: { patientId: session.patientId, read: false } }),
+    ]);
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <PortalShell session={session} active="/portal/dashboard">
+      {dataUnavailable && <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">Portal data is temporarily unavailable.</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <section className="card card-pad sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3">
           <Metric label="Upcoming Appointments" value={upcoming.length} />

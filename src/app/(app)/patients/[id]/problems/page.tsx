@@ -8,10 +8,17 @@ export default async function ProblemsPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const user = await requireSession();
   const ctx = await loadPatientCtx(id);
-  const list = await db.problem.findMany({ where: { patientId: id }, orderBy: { createdAt: "desc" } });
+  let list: any[] = [];
+  let dataUnavailable = Boolean((ctx as any).dataUnavailable);
+  try {
+    list = await db.problem.findMany({ where: { patientId: id }, orderBy: { createdAt: "desc" } });
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <PatientChart user={user} {...ctx} active="problems">
+      {dataUnavailable && <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">Problem data is temporarily unavailable.</div>}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <section className="card lg:col-span-2">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold">Problem List ({list.length})</header>

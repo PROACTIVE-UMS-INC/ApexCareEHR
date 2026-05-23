@@ -4,14 +4,22 @@ import { requirePortalSession } from "@/lib/portalAuth";
 
 export default async function PortalMessagesPage() {
   const session = await requirePortalSession();
-  const messages = await db.message.findMany({
-    where: { patientId: session.patientId },
-    include: { fromUser: true },
-    orderBy: { createdAt: "desc" },
-  });
+  let messages: Array<{ id: string; subject: string; read: boolean; createdAt: Date; body: string; fromUser: { firstName: string; lastName: string } }> = [];
+  let dataUnavailable = false;
+
+  try {
+    messages = await db.message.findMany({
+      where: { patientId: session.patientId },
+      include: { fromUser: true },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <PortalShell session={session} active="/portal/messages">
+      {dataUnavailable && <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">Messages are temporarily unavailable.</div>}
       <section className="card">
         <header className="px-4 py-3 border-b border-slate-200 font-semibold">Secure Messages</header>
         {messages.length === 0 ? (

@@ -7,10 +7,17 @@ export default async function PtDocs({ params }: { params: Promise<{ id: string 
   const { id } = await params;
   const user = await requireSession();
   const ctx = await loadPatientCtx(id);
-  const docs = await db.document.findMany({ where: { patientId: id }, orderBy: { createdAt: "desc" } });
+  let docs: any[] = [];
+  let dataUnavailable = Boolean((ctx as any).dataUnavailable);
+  try {
+    docs = await db.document.findMany({ where: { patientId: id }, orderBy: { createdAt: "desc" } });
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <PatientChart user={user} {...ctx} active="documents">
+      {dataUnavailable && <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">Document data is temporarily unavailable.</div>}
       <section className="card">
         <header className="px-4 py-3 border-b border-slate-200 font-semibold">Documents ({docs.length})</header>
         {docs.length === 0 ? (

@@ -6,13 +6,34 @@ import PatientHeader, { PatientTabs } from "@/components/PatientHeader";
 import { SessionUser } from "@/lib/auth";
 
 export async function loadPatientCtx(id: string) {
-  const patient = await db.patient.findUnique({ where: { id } });
-  if (!patient) notFound();
-  const [allergies, problems] = await Promise.all([
-    db.allergy.findMany({ where: { patientId: id, status: "active" } }),
-    db.problem.findMany({ where: { patientId: id, status: { in: ["active", "chronic"] } } }),
-  ]);
-  return { patient, allergies, problems };
+  try {
+    const patient = await db.patient.findUnique({ where: { id } });
+    if (!patient) notFound();
+    const [allergies, problems] = await Promise.all([
+      db.allergy.findMany({ where: { patientId: id, status: "active" } }),
+      db.problem.findMany({ where: { patientId: id, status: { in: ["active", "chronic"] } } }),
+    ]);
+    return { patient, allergies, problems, dataUnavailable: false };
+  } catch {
+    return {
+      patient: {
+        id,
+        firstName: "Patient",
+        lastName: "Unavailable",
+        sex: "-",
+        dob: new Date(),
+        mrn: "N/A",
+        phone: null,
+        email: null,
+        pronouns: null,
+        preferredLang: null,
+        insurerName: null,
+      } as any,
+      allergies: [],
+      problems: [],
+      dataUnavailable: true,
+    };
+  }
 }
 
 export default function PatientChart({

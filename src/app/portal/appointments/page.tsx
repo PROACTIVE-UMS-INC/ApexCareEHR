@@ -4,14 +4,22 @@ import { requirePortalSession } from "@/lib/portalAuth";
 
 export default async function PortalAppointmentsPage() {
   const session = await requirePortalSession();
-  const appointments = await db.appointment.findMany({
-    where: { patientId: session.patientId },
-    include: { provider: true, serviceType: true },
-    orderBy: { startsAt: "desc" },
-  });
+  let appointments: Array<{ id: string; startsAt: Date; serviceType: { name: string } | null; reason: string | null; provider: { firstName: string; lastName: string }; location: string | null; status: string }> = [];
+  let dataUnavailable = false;
+
+  try {
+    appointments = await db.appointment.findMany({
+      where: { patientId: session.patientId },
+      include: { provider: true, serviceType: true },
+      orderBy: { startsAt: "desc" },
+    });
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <PortalShell session={session} active="/portal/appointments">
+      {dataUnavailable && <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">Appointments are temporarily unavailable.</div>}
       <section className="card">
         <header className="px-4 py-3 border-b border-slate-200 font-semibold text-sm sm:text-base">Your Appointments</header>
         {appointments.length === 0 ? (

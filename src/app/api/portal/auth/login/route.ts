@@ -18,7 +18,12 @@ export async function POST(req: Request) {
   const parse = Body.safeParse(body);
   if (!parse.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
-  const patient = await db.patient.findUnique({ where: { mrn: parse.data.mrn.trim() } });
+  let patient: Awaited<ReturnType<typeof db.patient.findUnique>> = null;
+  try {
+    patient = await db.patient.findUnique({ where: { mrn: parse.data.mrn.trim() } });
+  } catch {
+    return NextResponse.json({ error: "Portal is temporarily unavailable" }, { status: 503 });
+  }
   if (!patient || !sameDateOnly(patient.dob, parse.data.dob)) {
     return NextResponse.json({ error: "Invalid MRN or DOB" }, { status: 401 });
   }

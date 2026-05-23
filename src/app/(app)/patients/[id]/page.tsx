@@ -10,18 +10,44 @@ import { fmtDateTime, fmtTime, colorForApptStatus } from "@/lib/utils";
 export default async function PatientSummary({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireSession();
-  const patient = await db.patient.findUnique({ where: { id } });
-  if (!patient) notFound();
+  let patient: any = {
+    id,
+    firstName: "Patient",
+    lastName: "Unavailable",
+    sex: "-",
+    dob: new Date(),
+    mrn: "N/A",
+    phone: null,
+    email: null,
+    pronouns: null,
+    preferredLang: null,
+    insurerName: null,
+  };
+  let allergies: any[] = [];
+  let problems: any[] = [];
+  let medications: any[] = [];
+  let vitalsLatest: any = null;
+  let encounters: any[] = [];
+  let upcoming: any[] = [];
+  let orders: any[] = [];
+  let dataUnavailable = false;
 
-  const [allergies, problems, medications, vitalsLatest, encounters, upcoming, orders] = await Promise.all([
-    db.allergy.findMany({ where: { patientId: id, status: "active" }, orderBy: { createdAt: "desc" } }),
-    db.problem.findMany({ where: { patientId: id, status: { in: ["active", "chronic"] } }, orderBy: { createdAt: "desc" } }),
-    db.medication.findMany({ where: { patientId: id, status: "active" }, orderBy: { createdAt: "desc" }, take: 8 }),
-    db.vital.findFirst({ where: { patientId: id }, orderBy: { takenAt: "desc" } }),
-    db.encounter.findMany({ where: { patientId: id }, include: { provider: true }, orderBy: { startedAt: "desc" }, take: 5 }),
-    db.appointment.findMany({ where: { patientId: id, startsAt: { gte: new Date() } }, include: { provider: true, serviceType: true }, orderBy: { startsAt: "asc" }, take: 5 }),
-    db.order.findMany({ where: { patientId: id }, orderBy: { createdAt: "desc" }, take: 8 }),
-  ]);
+  try {
+    patient = await db.patient.findUnique({ where: { id } });
+    if (!patient) notFound();
+
+    [allergies, problems, medications, vitalsLatest, encounters, upcoming, orders] = await Promise.all([
+      db.allergy.findMany({ where: { patientId: id, status: "active" }, orderBy: { createdAt: "desc" } }),
+      db.problem.findMany({ where: { patientId: id, status: { in: ["active", "chronic"] } }, orderBy: { createdAt: "desc" } }),
+      db.medication.findMany({ where: { patientId: id, status: "active" }, orderBy: { createdAt: "desc" }, take: 8 }),
+      db.vital.findFirst({ where: { patientId: id }, orderBy: { takenAt: "desc" } }),
+      db.encounter.findMany({ where: { patientId: id }, include: { provider: true }, orderBy: { startedAt: "desc" }, take: 5 }),
+      db.appointment.findMany({ where: { patientId: id, startsAt: { gte: new Date() } }, include: { provider: true, serviceType: true }, orderBy: { startsAt: "asc" }, take: 5 }),
+      db.order.findMany({ where: { patientId: id }, orderBy: { createdAt: "desc" }, take: 8 }),
+    ]);
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <Shell user={user} jellyBeans={<JellyBeans patientId={id} />} patientHeader={
@@ -30,6 +56,11 @@ export default async function PatientSummary({ params }: { params: Promise<{ id:
         <PatientTabs patientId={id} active="summary" />
       </>
     }>
+      {dataUnavailable && (
+        <section className="card card-pad mb-4 border-amber-200 bg-amber-50 text-amber-900">
+          Patient chart data is temporarily unavailable.
+        </section>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card title="Active Problems" href={`/patients/${id}/problems`} cta="Manage">
           {problems.length === 0 ? <Empty>No active problems</Empty> : (
