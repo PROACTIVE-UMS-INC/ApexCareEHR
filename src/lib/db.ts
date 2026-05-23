@@ -9,6 +9,29 @@ function asExistingFileUrl(maybePath: string | null | undefined) {
   return null;
 }
 
+function ensureWritableNetlifyDb(sourcePath: string) {
+  const tmpRoot = process.env.TMPDIR || "/tmp";
+  const targetDir = path.join(tmpRoot, "apexcare", "prisma");
+  const targetPath = path.join(targetDir, "dev.db");
+
+  try {
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    const needsCopy =
+      !fs.existsSync(targetPath) ||
+      fs.statSync(sourcePath).mtimeMs > fs.statSync(targetPath).mtimeMs;
+
+    if (needsCopy) {
+      fs.copyFileSync(sourcePath, targetPath);
+    }
+
+    return pathToFileURL(targetPath).toString();
+  } catch {
+    // If /tmp is unavailable for any reason, fall back to the source path.
+    return pathToFileURL(sourcePath).toString();
+  }
+}
+
 function resolveDatabaseUrl() {
   const configuredUrl = process.env.DATABASE_URL;
 
@@ -33,8 +56,9 @@ function resolveDatabaseUrl() {
     ];
 
     for (const candidate of candidates) {
-      const fileUrl = asExistingFileUrl(candidate);
-      if (fileUrl) return fileUrl;
+      if (candidate && fs.existsSync(candidate)) {
+        return ensureWritableNetlifyDb(candidate);
+      }
     }
 
     // Fallback for Netlify bundles where the DB is copied relative to the function cwd.
