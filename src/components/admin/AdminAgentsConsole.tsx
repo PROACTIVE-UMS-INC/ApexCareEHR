@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type AgentKey = "coding-billing" | "medical-notes" | "validation" | "data-correction" | "flow-optimizer";
 
@@ -55,6 +55,10 @@ export default function AdminAgentsConsole({
   });
   const [runningMode, setRunningMode] = useState<"scan" | "autofix" | "autonomous" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const latest = runs[0] ?? null;
 
@@ -91,6 +95,11 @@ export default function AdminAgentsConsole({
       setRunningMode(null);
     }
   }
+
+  const formatTimestamp = (value: string) => {
+    if (!mounted) return "--";
+    return new Date(value).toLocaleString();
+  };
 
   return (
     <section className="space-y-4">
@@ -138,7 +147,7 @@ export default function AdminAgentsConsole({
         <div className="card card-pad space-y-3">
           <div className="flex items-center justify-between gap-2">
             <h3 className="font-semibold text-slate-900">Latest Run Snapshot</h3>
-            <span className="text-xs text-slate-500">{new Date(latest.completedAt).toLocaleString()}</span>
+            <span className="text-xs text-slate-500" suppressHydrationWarning>{formatTimestamp(latest.completedAt)}</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             <Metric label="Findings" value={latest.metrics.totalFindings} />
@@ -205,7 +214,7 @@ export default function AdminAgentsConsole({
               <span className="chip bg-slate-100 text-slate-700 ring-slate-200">{run.mode}</span>
               <span>Findings {run.metrics.totalFindings}</span>
               <span>Fixed {run.metrics.fixedCount}</span>
-              <span className="text-slate-500 ml-auto">{new Date(run.completedAt).toLocaleString()}</span>
+              <span className="text-slate-500 ml-auto" suppressHydrationWarning>{formatTimestamp(run.completedAt)}</span>
             </div>
           ))}
           {runs.length === 0 && <div className="text-sm text-slate-500">No agent runs yet.</div>}
