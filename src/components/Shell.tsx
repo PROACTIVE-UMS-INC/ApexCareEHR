@@ -10,6 +10,18 @@ import LogoutButton from "./LogoutButton";
 import TopUtilityBar from "./TopUtilityBar";
 import { CLINICAL_MODULES } from "@/lib/modules";
 
+type NavItem = {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  children?: Array<{ label: string; href: string }>;
+};
+
+type NavSection = {
+  title: string;
+  items: NavItem[];
+};
+
 export default function Shell({
   user,
   children,
@@ -26,7 +38,7 @@ export default function Shell({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
-  const NAV: { label: string; href: string; icon: React.ReactNode; children?: Array<{ label: string; href: string }> }[] = [
+  const NAV: NavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: <Icon.Home /> },
     { label: "Schedule", href: "/schedule", icon: <Icon.Calendar /> },
     { label: "Patients", href: "/patients", icon: <Icon.Users /> },
@@ -50,7 +62,77 @@ export default function Shell({
     NAV.splice(9, 0, { label: "Admin", href: "/admin", icon: <Icon.Shield /> });
   }
 
+  const isItemActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+  const groupedNav: NavSection[] = [
+    {
+      title: "Clinical",
+      items: NAV.filter((item) => ["/dashboard", "/schedule", "/patients", "/encounters", "/orders", "/modules"].includes(item.href)),
+    },
+    {
+      title: "Operations",
+      items: NAV.filter((item) => ["/billing", "/messages", "/services"].includes(item.href)),
+    },
+    {
+      title: "Administration",
+      items: NAV.filter((item) => ["/settings", "/admin"].includes(item.href)),
+    },
+  ].filter((section) => section.items.length > 0);
+
+  const activeSection = groupedNav.find((section) => section.items.some((item) => isItemActive(item.href)));
+  const activeItem = NAV.find((item) => isItemActive(item.href));
+
+  const quickLinks = [
+    { label: "Today", href: "/dashboard" },
+    { label: "Schedule", href: "/schedule" },
+    { label: "Patients", href: "/patients" },
+    { label: "Modules", href: "/modules" },
+    { label: "Labs", href: "/orders?type=lab" },
+  ];
+
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const renderNavGroup = (section: NavSection, mobile = false) => {
+    return (
+      <div key={section.title} className="space-y-1.5">
+        <div className="px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300/70">{section.title}</div>
+        <div className="space-y-0.5">
+          {section.items.map((item) => {
+            const active = isItemActive(item.href);
+            return (
+              <div key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={mobile ? closeMobileMenu : undefined}
+                  className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition ${active ? "bg-teal-400/20 text-white" : "text-slate-100 hover:bg-teal-400/20 hover:text-white"}`}
+                >
+                  <span className="text-slate-300">{item.icon}</span>
+                  {item.label}
+                </Link>
+                {item.children && active && (
+                  <div className="ml-8 mt-1 mb-1 space-y-0.5 border-l border-sky-800/60 pl-2">
+                    {item.children.map((child) => {
+                      const childActive = pathname === child.href;
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={mobile ? closeMobileMenu : undefined}
+                          className={`block rounded-md px-2 py-1 text-xs transition ${childActive ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -119,37 +201,12 @@ export default function Shell({
 
         {/* SIDEBAR - DESKTOP */}
         <aside className="w-[var(--sidebar-w)] shrink-0 bg-gradient-to-b from-[var(--navy-900)] to-[var(--navy-800)] border-r border-sky-900/50 sticky top-[var(--chrome-h)] h-[calc(100vh-var(--chrome-h))] hidden md:flex flex-col">
-          <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto no-scrollbar">
-            {NAV.map(item => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <div key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition ${active ? "bg-teal-400/20 text-white" : "text-slate-100 hover:bg-teal-400/20 hover:text-white"}`}
-                  >
-                    <span className="text-slate-300">{item.icon}</span>
-                    {item.label}
-                  </Link>
-                  {item.children && active && (
-                    <div className="ml-8 mt-1 mb-1 space-y-0.5 border-l border-sky-800/60 pl-2">
-                      {item.children.map((child) => {
-                        const childActive = pathname === child.href;
-                        return (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            className={`block rounded-md px-2 py-1 text-xs transition ${childActive ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
-                          >
-                            {child.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="px-3 pt-3 pb-2 border-b border-sky-900/50">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-100/80">Workspace</div>
+            <div className="mt-1 text-xs text-slate-200">{activeSection?.title || "Clinical"} / {activeItem?.label || "Dashboard"}</div>
+          </div>
+          <nav className="flex-1 p-2 space-y-3 overflow-y-auto no-scrollbar">
+            {groupedNav.map((section) => renderNavGroup(section))}
           </nav>
           <div className="p-3 border-t border-sky-900/50">
             <a
@@ -180,39 +237,12 @@ export default function Shell({
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto no-scrollbar">
-            {NAV.map(item => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <div key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={closeMobileMenu}
-                    className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition ${active ? "bg-teal-400/20 text-white" : "text-slate-100 hover:bg-teal-400/20 hover:text-white"}`}
-                  >
-                    <span className="text-slate-300">{item.icon}</span>
-                    {item.label}
-                  </Link>
-                  {item.children && active && (
-                    <div className="ml-8 mt-1 mb-1 space-y-0.5 border-l border-sky-800/60 pl-2">
-                      {item.children.map((child) => {
-                        const childActive = pathname === child.href;
-                        return (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            onClick={closeMobileMenu}
-                            className={`block rounded-md px-2 py-1 text-xs transition ${childActive ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
-                          >
-                            {child.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="px-3 pt-3 pb-2 border-b border-sky-900/50">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-100/80">Navigation</div>
+            <div className="mt-1 text-xs text-slate-200">{activeSection?.title || "Clinical"} / {activeItem?.label || "Dashboard"}</div>
+          </div>
+          <nav className="flex-1 p-2 space-y-3 overflow-y-auto no-scrollbar">
+            {groupedNav.map((section) => renderNavGroup(section, true))}
           </nav>
           <div className="p-3 border-t border-sky-900/50">
             <a
@@ -240,8 +270,26 @@ export default function Shell({
         {/* MAIN */}
         <main className="flex-1 min-w-0 bg-gradient-to-b from-[var(--teal-100)]/35 via-white to-white overflow-x-hidden">
           {patientHeader}
+          <div className="px-3 sm:px-6 pt-3 pb-1 flex flex-wrap items-center gap-2">
+            <span className="chip bg-slate-100 text-slate-700 ring-slate-200">Section: {activeSection?.title || "Clinical"}</span>
+            <span className="chip bg-brand-100 text-brand-800 ring-brand-200">Page: {activeItem?.label || "Workspace"}</span>
+            <div className="ml-auto flex flex-wrap items-center gap-1.5">
+              {quickLinks.map((link) => {
+                const quickActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`chip ${quickActive ? "bg-teal-100 text-teal-800 ring-teal-300" : "bg-white text-slate-600 ring-slate-200 hover:bg-slate-50"}`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
           {pageTitle && (
-            <div className="px-3 sm:px-6 pt-5 pb-2 flex items-center gap-3">
+            <div className="px-3 sm:px-6 pt-2 pb-2 flex items-center gap-3">
               <h1 className="text-lg sm:text-xl font-bold text-slate-900">{pageTitle}</h1>
             </div>
           )}

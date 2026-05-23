@@ -43,6 +43,15 @@ export default async function ModulesPage() {
   return (
     <Shell user={user} pageTitle="Clinical Modules" jellyBeans={<JellyBeans />}>
       <div className="space-y-4">
+        <section className="card card-pad">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="chip bg-slate-100 text-slate-700 ring-slate-200 font-semibold">Navigate sections</span>
+            <Link href="#module-directory" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Module Directory</Link>
+            <Link href="#service-overview" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Service Overview</Link>
+            <Link href="#activity-stream" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Activity Stream</Link>
+          </div>
+        </section>
+
         <section className="card card-pad bg-gradient-to-br from-white to-slate-50">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl space-y-2">
@@ -61,7 +70,7 @@ export default async function ModulesPage() {
           </div>
         </section>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div id="module-directory" className="grid grid-cols-1 xl:grid-cols-3 gap-4 scroll-mt-32">
           {CLINICAL_MODULES.map(module => {
             const moduleServices = serviceTypes.filter(service => service.category === module.key);
             const moduleAppointments = appointments.filter(appointment => appointment.serviceType?.category === module.key);
@@ -152,7 +161,23 @@ export default async function ModulesPage() {
           })}
         </div>
 
-        <section className="card">
+        <section id="service-overview" className="card scroll-mt-32">
+          <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Service overview by specialty</header>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+            {CLINICAL_MODULES.map((module) => {
+              const moduleServices = serviceTypes.filter((service) => service.category === module.key);
+              return (
+                <div key={module.key} className="rounded-md bg-slate-50 ring-1 ring-slate-200 p-3">
+                  <div className={`chip ${colorForCategory(module.key)} font-semibold`}>{module.title}</div>
+                  <div className="mt-2 text-sm text-slate-700">{moduleServices.length} configured service type(s)</div>
+                  <div className="mt-2 text-xs text-slate-500">{moduleServices.slice(0, 3).map((service) => service.name).join(" / ") || "Using fallback service bundle"}</div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section id="activity-stream" className="card scroll-mt-32">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Recent module activity</header>
           <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
             {CLINICAL_MODULES.map(module => {
