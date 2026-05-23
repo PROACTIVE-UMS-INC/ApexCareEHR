@@ -82,6 +82,9 @@ export default async function Settings() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
         <section className="card card-pad space-y-3">
           <h2 className="font-semibold text-slate-900">Module Activation Status</h2>
+          <div className={`rounded-md ring-1 p-2 text-xs ${adminConfig.modules.enforceRoleAccess ? "bg-blue-50 text-blue-800 ring-blue-200" : "bg-slate-50 text-slate-700 ring-slate-200"}`}>
+            Role enforcement: {adminConfig.modules.enforceRoleAccess ? "enabled" : "disabled"}
+          </div>
           <div className="space-y-2">
             {CLINICAL_MODULES.map((module) => {
               const config = adminConfig.modules.modules[module.key];
@@ -102,6 +105,12 @@ export default async function Settings() {
                   </div>
                   <div className="mt-2 text-xs text-slate-500">
                     Default visit {config.defaultVisitLengthMinutes} min · Max daily visits {config.maxDailyVisits}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Staffing {config.staffingTemplate} · Intake {config.intakeTemplate} · SLA {config.slaFirstResponseMinutes}m/{config.slaCompletionHours}h
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Signoff {config.requiredRoleForSignoff} · Escalation {config.autoEscalationEnabled ? "on" : "off"} · Reminder {config.autoReminderHours}h
                   </div>
                 </div>
               );

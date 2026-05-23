@@ -42,6 +42,13 @@ type ModuleFeature = {
   requireIntakeChecklist: boolean;
   defaultVisitLengthMinutes: number;
   maxDailyVisits: number;
+  staffingTemplate: "solo-provider" | "provider-ma-team" | "provider-rn-team" | "full-hybrid-team";
+  intakeTemplate: "standard" | "rehab" | "wound" | "aesthetic";
+  slaFirstResponseMinutes: number;
+  slaCompletionHours: number;
+  autoEscalationEnabled: boolean;
+  autoReminderHours: number;
+  requiredRoleForSignoff: "provider" | "nurse";
 };
 
 type ModuleIntegrations = {
@@ -230,6 +237,42 @@ export default function AdminOpsSettings({
                 <label className="text-xs">Max daily visits
                   <input type="number" className="input" value={mod.maxDailyVisits} onChange={(e) => updateModule(moduleKey, { maxDailyVisits: Number(e.target.value || 0) })} />
                 </label>
+                <label className="text-xs">Staffing template
+                  <select className="input" value={mod.staffingTemplate} onChange={(e) => updateModule(moduleKey, { staffingTemplate: e.target.value as ModuleFeature["staffingTemplate"] })}>
+                    <option value="solo-provider">solo-provider</option>
+                    <option value="provider-ma-team">provider-ma-team</option>
+                    <option value="provider-rn-team">provider-rn-team</option>
+                    <option value="full-hybrid-team">full-hybrid-team</option>
+                  </select>
+                </label>
+                <label className="text-xs">Intake template
+                  <select className="input" value={mod.intakeTemplate} onChange={(e) => updateModule(moduleKey, { intakeTemplate: e.target.value as ModuleFeature["intakeTemplate"] })}>
+                    <option value="standard">standard</option>
+                    <option value="rehab">rehab</option>
+                    <option value="wound">wound</option>
+                    <option value="aesthetic">aesthetic</option>
+                  </select>
+                </label>
+                <label className="text-xs">SLA first response (minutes)
+                  <input type="number" className="input" value={mod.slaFirstResponseMinutes} onChange={(e) => updateModule(moduleKey, { slaFirstResponseMinutes: Number(e.target.value || 0) })} />
+                </label>
+                <label className="text-xs">SLA completion (hours)
+                  <input type="number" className="input" value={mod.slaCompletionHours} onChange={(e) => updateModule(moduleKey, { slaCompletionHours: Number(e.target.value || 0) })} />
+                </label>
+                <label className="text-xs">Auto reminder cadence (hours)
+                  <input type="number" className="input" value={mod.autoReminderHours} onChange={(e) => updateModule(moduleKey, { autoReminderHours: Number(e.target.value || 0) })} />
+                </label>
+                <label className="text-xs">Required signoff role
+                  <select className="input" value={mod.requiredRoleForSignoff} onChange={(e) => updateModule(moduleKey, { requiredRoleForSignoff: e.target.value as ModuleFeature["requiredRoleForSignoff"] })}>
+                    <option value="provider">provider</option>
+                    <option value="nurse">nurse</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                <label className="inline-flex items-center gap-2"><input type="checkbox" checked={mod.autoEscalationEnabled} onChange={(e) => updateModule(moduleKey, { autoEscalationEnabled: e.target.checked })} /> Enable SLA auto-escalation</label>
+                <div className="text-xs text-slate-500">Escalations trigger when response/completion SLA thresholds are exceeded.</div>
               </div>
             </div>
           );

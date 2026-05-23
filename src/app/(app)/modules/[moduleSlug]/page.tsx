@@ -6,7 +6,7 @@ import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { colorForCategory, fmtDateTime } from "@/lib/utils";
 import { getModuleBySlug, MODULE_SERVICE_FALLBACKS } from "@/lib/modules";
-import { readAdminConfig } from "@/lib/admin/store";
+import { canAccessModule, canAccessModuleWorkflow, readAdminConfig } from "@/lib/admin/store";
 
 export default async function ModuleDetailPage({ params }: { params: Promise<{ moduleSlug: string }> }) {
   const { moduleSlug } = await params;
@@ -16,12 +16,28 @@ export default async function ModuleDetailPage({ params }: { params: Promise<{ m
   const user = await requireSession();
   const adminConfig = await readAdminConfig();
   const moduleRuntime = adminConfig.modules.modules[moduleDef.key];
+  const canViewModule = canAccessModule(adminConfig, user.role, moduleDef.key);
+  const canSchedule = canAccessModuleWorkflow(adminConfig, user.role, moduleDef.key, "scheduling");
+  const canChart = canAccessModuleWorkflow(adminConfig, user.role, moduleDef.key, "encounters");
+  const canOrder = canAccessModuleWorkflow(adminConfig, user.role, moduleDef.key, "orders");
+  const canBill = canAccessModuleWorkflow(adminConfig, user.role, moduleDef.key, "billing");
+  const canTelehealth = canAccessModuleWorkflow(adminConfig, user.role, moduleDef.key, "telehealth") && adminConfig.modules.integrations.googleMeetTelehealth;
 
   if (!adminConfig.modules.moduleHubEnabled || !moduleRuntime.enabled) {
     return (
       <Shell user={user} pageTitle={`${moduleDef.title} Module`} jellyBeans={<JellyBeans />}>
         <div className="card card-pad border-amber-200 bg-amber-50 text-amber-900">
           {moduleDef.title} is currently disabled in Admin Operational Settings.
+        </div>
+      </Shell>
+    );
+  }
+
+  if (adminConfig.modules.enforceRoleAccess && !canViewModule) {
+    return (
+      <Shell user={user} pageTitle={`${moduleDef.title} Module`} jellyBeans={<JellyBeans />}>
+        <div className="card card-pad border-rose-200 bg-rose-50 text-rose-900">
+          Access denied. Your role does not currently have permission to open this module.
         </div>
       </Shell>
     );
@@ -102,18 +118,23 @@ export default async function ModuleDetailPage({ params }: { params: Promise<{ m
             <span className={`chip ${moduleRuntime.requireIntakeChecklist ? "bg-amber-100 text-amber-800 ring-amber-200" : "bg-slate-100 text-slate-700 ring-slate-200"}`}>Intake checklist {moduleRuntime.requireIntakeChecklist ? "required" : "optional"}</span>
             <span className="chip bg-slate-100 text-slate-700 ring-slate-200">Default visit {moduleRuntime.defaultVisitLengthMinutes} min</span>
             <span className="chip bg-slate-100 text-slate-700 ring-slate-200">Max/day {moduleRuntime.maxDailyVisits}</span>
+            <span className="chip bg-slate-100 text-slate-700 ring-slate-200">Staffing {moduleRuntime.staffingTemplate}</span>
+            <span className="chip bg-slate-100 text-slate-700 ring-slate-200">Intake {moduleRuntime.intakeTemplate}</span>
+            <span className="chip bg-slate-100 text-slate-700 ring-slate-200">SLA {moduleRuntime.slaFirstResponseMinutes}m/{moduleRuntime.slaCompletionHours}h</span>
+            <span className="chip bg-slate-100 text-slate-700 ring-slate-200">Signoff {moduleRuntime.requiredRoleForSignoff}</span>
+            <span className={`chip ${moduleRuntime.autoEscalationEnabled ? "bg-emerald-100 text-emerald-800 ring-emerald-200" : "bg-slate-100 text-slate-700 ring-slate-200"}`}>Escalation {moduleRuntime.autoEscalationEnabled ? "on" : "off"}</span>
           </div>
         </section>
 
         <section className="card card-pad">
           <h3 className="font-semibold text-slate-900 mb-2">Integrated module actions</h3>
           <div className="flex flex-wrap gap-2">
-            {moduleRuntime.allowScheduling && <Link href="/schedule" className="btn-secondary">Schedule visits</Link>}
+            {canSchedule && <Link href="/schedule" className="btn-secondary">Schedule visits</Link>}
             <Link href={`/services?category=${moduleDef.key}`} className="btn-secondary">View service catalog</Link>
-            {moduleRuntime.allowEncounters && <Link href="/encounters" className="btn-secondary">Document encounters</Link>}
-            {moduleRuntime.allowOrders && <Link href="/orders" className="btn-secondary">Manage orders</Link>}
-            {moduleRuntime.allowBilling && <Link href="/billing" className="btn-secondary">Submit billing and superbills</Link>}
-            {moduleRuntime.allowTelehealth && adminConfig.modules.integrations.googleMeetTelehealth && <Link href="/schedule" className="btn-secondary">Launch telehealth queue</Link>}
+            {canChart && <Link href="/encounters" className="btn-secondary">Document encounters</Link>}
+            {canOrder && <Link href="/orders" className="btn-secondary">Manage orders</Link>}
+            {canBill && <Link href="/billing" className="btn-secondary">Submit billing and superbills</Link>}
+            {canTelehealth && <Link href="/schedule" className="btn-secondary">Launch telehealth queue</Link>}
           </div>
         </section>
 

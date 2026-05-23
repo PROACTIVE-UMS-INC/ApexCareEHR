@@ -76,6 +76,13 @@ export type ModuleFeatureConfig = {
   requireIntakeChecklist: boolean;
   defaultVisitLengthMinutes: number;
   maxDailyVisits: number;
+  staffingTemplate: "solo-provider" | "provider-ma-team" | "provider-rn-team" | "full-hybrid-team";
+  intakeTemplate: "standard" | "rehab" | "wound" | "aesthetic";
+  slaFirstResponseMinutes: number;
+  slaCompletionHours: number;
+  autoEscalationEnabled: boolean;
+  autoReminderHours: number;
+  requiredRoleForSignoff: "provider" | "nurse";
 };
 
 export type ModuleIntegrationsConfig = {
@@ -176,6 +183,13 @@ const DEFAULTS: AdminConfig = {
         requireIntakeChecklist: true,
         defaultVisitLengthMinutes: 45,
         maxDailyVisits: 28,
+        staffingTemplate: "provider-rn-team",
+        intakeTemplate: "rehab",
+        slaFirstResponseMinutes: 45,
+        slaCompletionHours: 72,
+        autoEscalationEnabled: true,
+        autoReminderHours: 12,
+        requiredRoleForSignoff: "provider",
       },
       "wound-care": {
         enabled: true,
@@ -189,6 +203,13 @@ const DEFAULTS: AdminConfig = {
         requireIntakeChecklist: true,
         defaultVisitLengthMinutes: 40,
         maxDailyVisits: 22,
+        staffingTemplate: "provider-rn-team",
+        intakeTemplate: "wound",
+        slaFirstResponseMinutes: 30,
+        slaCompletionHours: 48,
+        autoEscalationEnabled: true,
+        autoReminderHours: 8,
+        requiredRoleForSignoff: "provider",
       },
       "aesthetic-medicine": {
         enabled: true,
@@ -202,6 +223,13 @@ const DEFAULTS: AdminConfig = {
         requireIntakeChecklist: false,
         defaultVisitLengthMinutes: 30,
         maxDailyVisits: 36,
+        staffingTemplate: "provider-ma-team",
+        intakeTemplate: "aesthetic",
+        slaFirstResponseMinutes: 60,
+        slaCompletionHours: 96,
+        autoEscalationEnabled: true,
+        autoReminderHours: 24,
+        requiredRoleForSignoff: "nurse",
       },
     },
     integrations: {
@@ -343,4 +371,39 @@ export async function patchAdminConfig<K extends keyof AdminConfig>(section: K, 
     [section]: value,
   };
   return await writeAdminConfig(next);
+}
+
+export function canRoleAccess(config: AdminConfig, role: StaffRole, permission: keyof RolePermissionSet) {
+  return !!config.roles[role]?.[permission];
+}
+
+export function canAccessModule(config: AdminConfig, role: StaffRole, moduleKey: ClinicalModuleKey) {
+  const moduleConfig = config.modules.modules[moduleKey];
+  if (!moduleConfig.enabled) return false;
+  if (!config.modules.enforceRoleAccess) return true;
+  return canRoleAccess(config, role, "patientsRead") && canRoleAccess(config, role, "dashboard");
+}
+
+export function canAccessModuleWorkflow(
+  config: AdminConfig,
+  role: StaffRole,
+  moduleKey: ClinicalModuleKey,
+  workflow: "scheduling" | "encounters" | "orders" | "billing" | "telehealth",
+) {
+  const moduleConfig = config.modules.modules[moduleKey];
+  if (!canAccessModule(config, role, moduleKey)) return false;
+
+  if (workflow === "scheduling") {
+    return moduleConfig.allowScheduling && canRoleAccess(config, role, "scheduling");
+  }
+  if (workflow === "encounters") {
+    return moduleConfig.allowEncounters && canRoleAccess(config, role, "encountersWrite");
+  }
+  if (workflow === "orders") {
+    return moduleConfig.allowOrders && canRoleAccess(config, role, "ordersWrite");
+  }
+  if (workflow === "billing") {
+    return moduleConfig.allowBilling && canRoleAccess(config, role, "billingRead");
+  }
+  return moduleConfig.allowTelehealth && canRoleAccess(config, role, "scheduling");
 }

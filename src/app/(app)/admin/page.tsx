@@ -68,6 +68,9 @@ export default async function AdminOverviewPage() {
         </section>
         <section className="card card-pad">
           <h2 className="font-semibold">Module and Integration Snapshot</h2>
+          <div className={`mt-3 rounded-md ring-1 p-2 text-xs ${config.modules.enforceRoleAccess ? "bg-blue-50 text-blue-800 ring-blue-200" : "bg-slate-50 text-slate-700 ring-slate-200"}`}>
+            Hard role enforcement for modules: {config.modules.enforceRoleAccess ? "enabled" : "disabled"}
+          </div>
           <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
             {CLINICAL_MODULES.map((module) => {
               const item = config.modules.modules[module.key];
@@ -79,6 +82,12 @@ export default async function AdminOverviewPage() {
                   </div>
                   <div className="mt-2 text-xs text-slate-600">
                     Visit length {item.defaultVisitLengthMinutes} min · Max/day {item.maxDailyVisits}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-600">
+                    Staffing {item.staffingTemplate} · Intake {item.intakeTemplate}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-600">
+                    SLA {item.slaFirstResponseMinutes}m/{item.slaCompletionHours}h · Signoff {item.requiredRoleForSignoff}
                   </div>
                 </div>
               );

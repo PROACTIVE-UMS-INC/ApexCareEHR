@@ -5,13 +5,26 @@ import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { fmtDateTime } from "@/lib/utils";
 import LabcorpRoutingControls from "@/components/orders/LabcorpRoutingControls";
-import { readAdminConfig } from "@/lib/admin/store";
+import { canRoleAccess, readAdminConfig } from "@/lib/admin/store";
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ type?: string; status?: string }> }) {
   const sp = await searchParams;
   const user = await requireSession();
   const adminConfig = await readAdminConfig();
   const labcorpEnabled = adminConfig.modules.integrations.labcorpOutbound;
+  const canViewOrders = !adminConfig.modules.enforceRoleAccess || canRoleAccess(adminConfig, user.role, "ordersWrite") || canRoleAccess(adminConfig, user.role, "billingRead");
+  const canRouteLabs = !adminConfig.modules.enforceRoleAccess || canRoleAccess(adminConfig, user.role, "ordersWrite");
+
+  if (!canViewOrders) {
+    return (
+      <Shell user={user} pageTitle="Orders" jellyBeans={<JellyBeans />}>
+        <div className="card card-pad border-rose-200 bg-rose-50 text-rose-900">
+          Access denied. Your role does not currently have permission to access the orders workspace.
+        </div>
+      </Shell>
+    );
+  }
+
   let orders: Array<{
     id: string;
     type: string;
@@ -62,10 +75,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             <span className="chip bg-amber-100 text-amber-800 ring-amber-200">Pending: {pendingLabCount}</span>
             <span className="chip bg-emerald-100 text-emerald-800 ring-emerald-200">Sent: {sentLabCount}</span>
           </div>
-          {labcorpEnabled ? (
+          {labcorpEnabled && canRouteLabs ? (
             <LabcorpRoutingControls pendingLabCount={pendingLabCount} />
           ) : (
-            <div className="mt-3 text-xs text-slate-600">Routing controls are unavailable while Labcorp outbound is disabled.</div>
+            <div className="mt-3 text-xs text-slate-600">Routing controls are unavailable while Labcorp outbound is disabled or your role lacks order routing permission.</div>
           )}
         </div>
       )}

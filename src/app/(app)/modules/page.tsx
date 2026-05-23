@@ -5,13 +5,17 @@ import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { colorForCategory, fmtDateTime } from "@/lib/utils";
 import { CLINICAL_MODULES, MODULE_SERVICE_FALLBACKS } from "@/lib/modules";
-import { readAdminConfig } from "@/lib/admin/store";
+import { canAccessModule, canAccessModuleWorkflow, readAdminConfig } from "@/lib/admin/store";
 
 export default async function ModulesPage() {
   const user = await requireSession();
   const adminConfig = await readAdminConfig();
   const moduleControls = adminConfig.modules;
-  const activeModules = CLINICAL_MODULES.filter((module) => moduleControls.modules[module.key].enabled);
+  const visibleActiveModules = CLINICAL_MODULES.filter(
+    (module) =>
+      moduleControls.modules[module.key].enabled &&
+      (!moduleControls.enforceRoleAccess || canAccessModule(adminConfig, user.role, module.key)),
+  );
 
   let providers: Array<any> = [];
   let serviceTypes: Array<any> = MODULE_SERVICE_FALLBACKS;
@@ -21,7 +25,7 @@ export default async function ModulesPage() {
   try {
     const [dbProviders, dbServiceTypes, dbAppointments, dbEncounters] = await Promise.all([
       db.user.findMany({ where: { active: true, role: "provider" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
-      db.serviceType.findMany({ where: { active: true, category: { in: activeModules.map((m) => m.key) } }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
+      db.serviceType.findMany({ where: { active: true, category: { in: visibleActiveModules.map((m) => m.key) } }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
       db.appointment.findMany({
         where: { startsAt: { gte: new Date() } },
         include: { patient: true, provider: true, serviceType: true },
@@ -50,6 +54,11 @@ export default async function ModulesPage() {
         {!moduleControls.moduleHubEnabled && (
           <section className="card card-pad border-amber-200 bg-amber-50 text-amber-900">
             Module hub is currently disabled in Admin Operational Settings.
+          </section>
+        )}
+        {moduleControls.enforceRoleAccess && (
+          <section className="card card-pad border-blue-200 bg-blue-50 text-blue-900">
+            Role enforcement is active. Module visibility and actions are filtered by your role permissions.
           </section>
         )}
         <section className="card card-pad">
@@ -82,12 +91,17 @@ export default async function ModulesPage() {
         )}
 
         <div id="module-directory" className="grid grid-cols-1 xl:grid-cols-3 gap-4 scroll-mt-32">
-          {activeModules.map(module => {
+          {visibleActiveModules.map(module => {
             const runtime = moduleControls.modules[module.key];
             const moduleServices = serviceTypes.filter(service => service.category === module.key);
             const moduleAppointments = appointments.filter(appointment => appointment.serviceType?.category === module.key);
             const moduleEncounters = encounters.filter(encounter => encounter.provider?.specialty?.toLowerCase().includes(module.key === "physical-therapy" ? "physical therapy" : module.key === "wound-care" ? "wound care" : "aesthetic") || encounter.chiefComplaint?.toLowerCase().includes(module.key === "physical-therapy" ? "pt" : module.key === "wound-care" ? "wound" : "aesthetic"));
             const lead = providers.find(provider => provider.specialty?.toLowerCase().includes(module.key === "physical-therapy" ? "physical therapy" : module.key === "wound-care" ? "wound care" : "aesthetic"));
+            const canSchedule = canAccessModuleWorkflow(adminConfig, user.role, module.key, "scheduling");
+            const canChart = canAccessModuleWorkflow(adminConfig, user.role, module.key, "encounters");
+            const canOrder = canAccessModuleWorkflow(adminConfig, user.role, module.key, "orders");
+            const canBill = canAccessModuleWorkflow(adminConfig, user.role, module.key, "billing");
+            const canTelehealth = canAccessModuleWorkflow(adminConfig, user.role, module.key, "telehealth") && adminConfig.modules.integrations.googleMeetTelehealth;
 
             return (
               <section key={module.key} className="card overflow-hidden">
@@ -138,12 +152,17 @@ export default async function ModulesPage() {
                   </div>
 
                   <div className="text-xs text-slate-500">Default visit {runtime.defaultVisitLengthMinutes} min · Max/day {runtime.maxDailyVisits} · Intake checklist {runtime.requireIntakeChecklist ? "required" : "optional"}</div>
+                  <div className="text-xs text-slate-500">Staffing: {runtime.staffingTemplate} · Intake template: {runtime.intakeTemplate}</div>
+                  <div className="text-xs text-slate-500">SLA: first response {runtime.slaFirstResponseMinutes} min · completion {runtime.slaCompletionHours} hr · reminders every {runtime.autoReminderHours} hr</div>
+                  <div className="text-xs text-slate-500">Signoff role: {runtime.requiredRoleForSignoff} · Auto escalation: {runtime.autoEscalationEnabled ? "enabled" : "disabled"}</div>
 
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/modules/${module.slug}`} className="chip bg-brand-100 text-brand-800 ring-brand-200 hover:bg-brand-200">Open workspace</Link>
-                    <Link href="/schedule" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Schedule</Link>
-                    <Link href="/encounters" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Encounters</Link>
-                    <Link href="/billing" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Billing</Link>
+                    {canSchedule && <Link href="/schedule" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Schedule</Link>}
+                    {canChart && <Link href="/encounters" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Encounters</Link>}
+                    {canBill && <Link href="/billing" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Billing</Link>}
+                    {canOrder && <Link href="/orders" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Orders</Link>}
+                    {canTelehealth && <Link href="/schedule" className="chip bg-violet-100 text-violet-800 ring-violet-200 hover:bg-violet-200">Telehealth</Link>}
                   </div>
 
                   <div>
@@ -181,13 +200,18 @@ export default async function ModulesPage() {
               </section>
             );
           })}
+          {visibleActiveModules.length === 0 && (
+            <section className="card card-pad border-amber-200 bg-amber-50 text-amber-900 xl:col-span-3">
+              No modules are currently accessible for your role with active enforcement settings.
+            </section>
+          )}
         </div>
 
         {moduleControls.showServiceOverview && (
         <section id="service-overview" className="card scroll-mt-32">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Service overview by specialty</header>
           <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-            {activeModules.map((module) => {
+            {visibleActiveModules.map((module) => {
               const moduleServices = serviceTypes.filter((service) => service.category === module.key);
               return (
                 <div key={module.key} className="rounded-md bg-slate-50 ring-1 ring-slate-200 p-3">
@@ -205,7 +229,7 @@ export default async function ModulesPage() {
         <section id="activity-stream" className="card scroll-mt-32">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Recent module activity</header>
           <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
-            {activeModules.map(module => {
+            {visibleActiveModules.map(module => {
               const latestEncounter = encounters.find(encounter => encounter.provider?.specialty?.toLowerCase().includes(module.key === "physical-therapy" ? "physical therapy" : module.key === "wound-care" ? "wound care" : "aesthetic"));
               const latestAppointment = appointments.find(appointment => appointment.serviceType?.category === module.key);
 

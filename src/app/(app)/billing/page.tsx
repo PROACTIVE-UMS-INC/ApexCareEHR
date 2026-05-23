@@ -4,9 +4,23 @@ import { db } from "@/lib/db";
 import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { fmtDateTime, fmtMoney } from "@/lib/utils";
+import { canRoleAccess, readAdminConfig } from "@/lib/admin/store";
 
 export default async function BillingPage() {
   const user = await requireSession();
+  const adminConfig = await readAdminConfig();
+  const canViewBilling = !adminConfig.modules.enforceRoleAccess || canRoleAccess(adminConfig, user.role, "billingRead");
+
+  if (!canViewBilling) {
+    return (
+      <Shell user={user} pageTitle="Billing" jellyBeans={<JellyBeans />}>
+        <div className="card card-pad border-rose-200 bg-rose-50 text-rose-900">
+          Access denied. Your role does not currently have billing access.
+        </div>
+      </Shell>
+    );
+  }
+
   let enc: Array<{
     id: string;
     patientId: string;

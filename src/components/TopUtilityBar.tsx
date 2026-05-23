@@ -15,10 +15,11 @@ export default function TopUtilityBar({
   credential?: string | null;
   roleLabel: string;
 }) {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
   const [location, setLocation] = useState("Locating...");
 
   useEffect(() => {
+    setNow(new Date());
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
@@ -41,8 +42,9 @@ export default function TopUtilityBar({
   }, []);
 
   const clock = useMemo(
-    () =>
-      new Intl.DateTimeFormat("en-US", {
+    () => {
+      if (!now) return "--:--:--";
+      return new Intl.DateTimeFormat("en-US", {
         weekday: "short",
         month: "short",
         day: "2-digit",
@@ -50,7 +52,8 @@ export default function TopUtilityBar({
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
-      }).format(now),
+      }).format(now);
+    },
     [now]
   );
 
@@ -79,7 +82,7 @@ function InfoPill({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 ring-1 ring-white/10">
       <span className="text-teal-200">{icon}</span>
-      <span>{text}</span>
+      <span suppressHydrationWarning>{text}</span>
     </div>
   );
 }
