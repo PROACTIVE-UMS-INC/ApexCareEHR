@@ -1,12 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 type ChatMessage = {
   id: string;
   role: "assistant" | "user";
   text: string;
+};
+
+type SpeechRecognitionCtor = new () => {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
 };
 
 const STARTER_PROMPTS = [
@@ -39,7 +50,10 @@ export default function FloatingAssistantWidget() {
   const [sending, setSending] = useState(false);
   const [largeText, setLargeText] = useState(false);
   const [readAloud, setReadAloud] = useState(true);
+  const [listening, setListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
   const [input, setInput] = useState("");
+  const recognitionRef = useRef<null | { stop: () => void }>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -54,6 +68,23 @@ export default function FloatingAssistantWidget() {
 
   const isPortalPath = pathname?.startsWith("/portal") ?? false;
   const endpoint = useMemo(() => (isPortalPath ? "/api/portal/assistant" : "/api/assistant"), [isPortalPath]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const w = window as Window & {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    setSpeechSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!readAloud || typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -116,6 +147,47 @@ export default function FloatingAssistantWidget() {
     } finally {
       setSending(false);
     }
+  }
+
+  function toggleDictation() {
+    if (!speechSupported || typeof window === "undefined") return;
+
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const w = window as Window & {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    const RecognitionCtor = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!RecognitionCtor) return;
+
+    const recognition = new RecognitionCtor();
+    recognition.lang = uiLang === "es" ? "es-US" : "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((r) => r[0]?.transcript || "")
+        .join(" ")
+        .trim();
+      setInput(transcript);
+    };
+    recognition.onerror = () => {
+      setListening(false);
+    };
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognitionRef.current = recognition;
+    setListening(true);
+    recognition.start();
   }
 
   return (
@@ -195,10 +267,32 @@ export default function FloatingAssistantWidget() {
               className="input flex-1 text-xs"
               disabled={sending}
             />
+            <button
+              type="button"
+              onClick={toggleDictation}
+              disabled={!speechSupported || sending}
+              className="btn-secondary px-2.5 py-1.5 text-xs"
+              aria-label={
+                listening
+                  ? t(uiLang, "Stop dictation", "Detener dictado")
+                  : t(uiLang, "Start dictation", "Iniciar dictado")
+              }
+            >
+              {listening ? t(uiLang, "Listening...", "Escuchando...") : t(uiLang, "Mic", "Micro")}
+            </button>
             <button type="submit" className="btn-primary px-3 py-1.5 text-xs" disabled={sending || !input.trim()}>
                 {t(uiLang, "Send", "Enviar")}
             </button>
           </form>
+          {!speechSupported && (
+            <p className="px-2.5 pb-2 text-[11px] text-slate-500">
+              {t(
+                uiLang,
+                "Voice dictation is not supported in this browser.",
+                "El dictado por voz no es compatible con este navegador.",
+              )}
+            </p>
+          )}
         </section>
       )}
 

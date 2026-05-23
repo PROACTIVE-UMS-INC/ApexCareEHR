@@ -22,17 +22,20 @@ export default async function Settings() {
   let dataUnavailable = false;
 
   try {
-    const result = await Promise.all([
-      db.user.findMany({ where: { active: true }, orderBy: [{ role: "asc" }, { lastName: "asc" }] }),
-      db.$transaction([
-        db.patient.count(),
-        db.encounter.count(),
-        db.order.count(),
-        db.appointment.count(),
-      ]),
+    staff = await db.user.findMany({ where: { active: true }, orderBy: [{ role: "asc" }, { lastName: "asc" }] });
+
+    // Avoid transaction-level failures on serverless SQLite runtimes by counting independently.
+    const countResults = await Promise.allSettled([
+      db.patient.count(),
+      db.encounter.count(),
+      db.order.count(),
+      db.appointment.count(),
     ]);
-    staff = result[0];
-    counts = result[1] as number[];
+
+    counts = countResults.map((result) => (result.status === "fulfilled" ? result.value : 0)) as number[];
+
+    const failedCountQueries = countResults.filter((result) => result.status === "rejected").length;
+    dataUnavailable = failedCountQueries > 0;
   } catch {
     dataUnavailable = true;
   }
