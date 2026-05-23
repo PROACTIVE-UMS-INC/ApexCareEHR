@@ -5,6 +5,7 @@ const DEFAULT_AUTH_SECRET = "apexcare-dev-secret-change-me-in-production-please-
 const PUBLIC_PATHS = [
   "/login",
   "/landing",
+  "/api/assistant",
   "/api/auth/login",
   "/api/admin/config/public",
   "/_next",
