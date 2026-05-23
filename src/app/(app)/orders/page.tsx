@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { fmtDateTime } from "@/lib/utils";
+import LabcorpRoutingControls from "@/components/orders/LabcorpRoutingControls";
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ type?: string; status?: string }> }) {
   const sp = await searchParams;
@@ -33,6 +34,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   } catch {
     dataUnavailable = true;
   }
+
+  const pendingLabCount = orders.filter((order) => order.type === "lab" && order.status === "pending").length;
+  const sentLabCount = orders.filter((order) => order.type === "lab" && order.status === "sent").length;
+
   return (
     <Shell user={user} pageTitle="Orders" jellyBeans={<JellyBeans />}>
       {dataUnavailable && (
@@ -46,9 +51,15 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             <div>
               <div className="text-xs uppercase tracking-wider font-semibold text-slate-500">Lab module</div>
               <div className="font-semibold text-slate-900">Labcorp routing is enabled for outbound lab orders.</div>
+              <div className="mt-1 text-xs text-slate-600">Outbound routing endpoint is active for all lab orders.</div>
             </div>
             <span className="chip bg-emerald-100 text-emerald-800 ring-emerald-200">Labcorp</span>
           </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="chip bg-amber-100 text-amber-800 ring-amber-200">Pending: {pendingLabCount}</span>
+            <span className="chip bg-emerald-100 text-emerald-800 ring-emerald-200">Sent: {sentLabCount}</span>
+          </div>
+          <LabcorpRoutingControls pendingLabCount={pendingLabCount} />
         </div>
       )}
       <div className="card">

@@ -80,6 +80,16 @@ export default function NewOrderForm({ patientId, initialType }: { patientId: st
         <Input label="Instructions" value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Fasting, …" />
       )}
 
+      {type === "lab" && (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          <div className="font-semibold">Lab module: active</div>
+          <div>Labcorp routing is enabled for outbound lab orders.</div>
+          <div className="mt-1 inline-flex items-center">
+            <span className="chip bg-emerald-100 text-emerald-800 ring-emerald-200">Labcorp</span>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="label">Priority</span>
