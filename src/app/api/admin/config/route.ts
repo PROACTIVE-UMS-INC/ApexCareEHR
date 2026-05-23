@@ -4,7 +4,7 @@ import { requireAdminSession } from "@/lib/admin/auth";
 import { patchAdminConfig, readAdminConfig } from "@/lib/admin/store";
 
 const Body = z.object({
-  section: z.enum(["branding", "landing", "org", "security", "portal", "roles"]),
+  section: z.enum(["branding", "landing", "org", "security", "portal", "modules", "roles"]),
   data: z.any(),
 });
 

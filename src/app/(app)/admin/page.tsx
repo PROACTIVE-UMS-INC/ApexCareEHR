@@ -3,6 +3,7 @@ import AdminTabs from "@/components/admin/AdminTabs";
 import { requireAdminSession } from "@/lib/admin/auth";
 import { db } from "@/lib/db";
 import { readAdminConfig } from "@/lib/admin/store";
+import { CLINICAL_MODULES } from "@/lib/modules";
 
 export default async function AdminOverviewPage() {
   const user = await requireAdminSession();
@@ -14,6 +15,8 @@ export default async function AdminOverviewPage() {
   let appointments = 0;
   let openOrders = 0;
   let dataUnavailable = false;
+  const activeModules = CLINICAL_MODULES.filter((module) => config.modules.modules[module.key].enabled).length;
+  const activeIntegrations = Object.values(config.modules.integrations).filter(Boolean).length;
 
   try {
     [users, activePatients, encounters, appointments, openOrders] = await Promise.all([
@@ -43,6 +46,12 @@ export default async function AdminOverviewPage() {
           <Stat label="Appointments" value={appointments} />
           <Stat label="Open Orders" value={openOrders} />
         </section>
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <Stat label="Active Modules" value={activeModules} />
+          <Stat label="Enabled Integrations" value={activeIntegrations} />
+          <Stat label="Portal Controls" value={Object.values(config.portal).filter(Boolean).length} />
+          <Stat label="Role Profiles" value={Object.keys(config.roles).length} />
+        </section>
         <section className="card card-pad grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h2 className="font-semibold">Brand Status</h2>
@@ -55,6 +64,25 @@ export default async function AdminOverviewPage() {
             <p className="text-sm text-slate-600 mt-2">MFA for admins: {config.security.mfaRequiredForAdmins ? "Required" : "Optional"}</p>
             <p className="text-sm text-slate-600">Session timeout: {config.security.sessionTimeoutMinutes} minutes</p>
             <p className="text-sm text-slate-600">Audit retention: {config.security.auditRetentionDays} days</p>
+          </div>
+        </section>
+        <section className="card card-pad">
+          <h2 className="font-semibold">Module and Integration Snapshot</h2>
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+            {CLINICAL_MODULES.map((module) => {
+              const item = config.modules.modules[module.key];
+              return (
+                <div key={module.key} className="rounded-md bg-slate-50 ring-1 ring-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium text-slate-900">{module.title}</div>
+                    <span className={`chip ${item.enabled ? "bg-emerald-100 text-emerald-800 ring-emerald-200" : "bg-rose-100 text-rose-800 ring-rose-200"}`}>{item.enabled ? "active" : "inactive"}</span>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-600">
+                    Visit length {item.defaultVisitLengthMinutes} min · Max/day {item.maxDailyVisits}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>

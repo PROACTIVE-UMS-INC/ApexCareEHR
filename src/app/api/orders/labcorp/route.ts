@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { readAdminConfig } from "@/lib/admin/store";
 
 export async function POST(req: Request) {
   await requireSession();
+  const adminConfig = await readAdminConfig();
+  if (!adminConfig.modules.integrations.labcorpOutbound) {
+    return NextResponse.json({ ok: false, error: "Labcorp outbound routing is disabled by admin." }, { status: 409 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const mode = body?.mode === "all" ? "all" : "pending";
 

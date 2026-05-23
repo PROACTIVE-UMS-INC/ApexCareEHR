@@ -5,10 +5,13 @@ import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { fmtDateTime } from "@/lib/utils";
 import LabcorpRoutingControls from "@/components/orders/LabcorpRoutingControls";
+import { readAdminConfig } from "@/lib/admin/store";
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ type?: string; status?: string }> }) {
   const sp = await searchParams;
   const user = await requireSession();
+  const adminConfig = await readAdminConfig();
+  const labcorpEnabled = adminConfig.modules.integrations.labcorpOutbound;
   let orders: Array<{
     id: string;
     type: string;
@@ -50,16 +53,20 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs uppercase tracking-wider font-semibold text-slate-500">Lab module</div>
-              <div className="font-semibold text-slate-900">Labcorp routing is enabled for outbound lab orders.</div>
-              <div className="mt-1 text-xs text-slate-600">Outbound routing endpoint is active for all lab orders.</div>
+              <div className="font-semibold text-slate-900">{labcorpEnabled ? "Labcorp routing is enabled for outbound lab orders." : "Labcorp routing is currently disabled by admin controls."}</div>
+              <div className="mt-1 text-xs text-slate-600">{labcorpEnabled ? "Outbound routing endpoint is active for all lab orders." : "Enable Labcorp outbound routing in Admin Operational Settings to activate this flow."}</div>
             </div>
-            <span className="chip bg-emerald-100 text-emerald-800 ring-emerald-200">Labcorp</span>
+            <span className={`chip ${labcorpEnabled ? "bg-emerald-100 text-emerald-800 ring-emerald-200" : "bg-slate-100 text-slate-700 ring-slate-200"}`}>Labcorp</span>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="chip bg-amber-100 text-amber-800 ring-amber-200">Pending: {pendingLabCount}</span>
             <span className="chip bg-emerald-100 text-emerald-800 ring-emerald-200">Sent: {sentLabCount}</span>
           </div>
-          <LabcorpRoutingControls pendingLabCount={pendingLabCount} />
+          {labcorpEnabled ? (
+            <LabcorpRoutingControls pendingLabCount={pendingLabCount} />
+          ) : (
+            <div className="mt-3 text-xs text-slate-600">Routing controls are unavailable while Labcorp outbound is disabled.</div>
+          )}
         </div>
       )}
       <div className="card">

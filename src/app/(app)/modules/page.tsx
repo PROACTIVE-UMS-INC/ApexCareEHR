@@ -5,9 +5,13 @@ import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { colorForCategory, fmtDateTime } from "@/lib/utils";
 import { CLINICAL_MODULES, MODULE_SERVICE_FALLBACKS } from "@/lib/modules";
+import { readAdminConfig } from "@/lib/admin/store";
 
 export default async function ModulesPage() {
   const user = await requireSession();
+  const adminConfig = await readAdminConfig();
+  const moduleControls = adminConfig.modules;
+  const activeModules = CLINICAL_MODULES.filter((module) => moduleControls.modules[module.key].enabled);
 
   let providers: Array<any> = [];
   let serviceTypes: Array<any> = MODULE_SERVICE_FALLBACKS;
@@ -17,7 +21,7 @@ export default async function ModulesPage() {
   try {
     const [dbProviders, dbServiceTypes, dbAppointments, dbEncounters] = await Promise.all([
       db.user.findMany({ where: { active: true, role: "provider" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
-      db.serviceType.findMany({ where: { active: true, category: { in: CLINICAL_MODULES.map((m) => m.key) } }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
+      db.serviceType.findMany({ where: { active: true, category: { in: activeModules.map((m) => m.key) } }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
       db.appointment.findMany({
         where: { startsAt: { gte: new Date() } },
         include: { patient: true, provider: true, serviceType: true },
@@ -43,35 +47,43 @@ export default async function ModulesPage() {
   return (
     <Shell user={user} pageTitle="Clinical Modules" jellyBeans={<JellyBeans />}>
       <div className="space-y-4">
+        {!moduleControls.moduleHubEnabled && (
+          <section className="card card-pad border-amber-200 bg-amber-50 text-amber-900">
+            Module hub is currently disabled in Admin Operational Settings.
+          </section>
+        )}
         <section className="card card-pad">
           <div className="flex flex-wrap items-center gap-2">
             <span className="chip bg-slate-100 text-slate-700 ring-slate-200 font-semibold">Navigate sections</span>
             <Link href="#module-directory" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Module Directory</Link>
-            <Link href="#service-overview" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Service Overview</Link>
-            <Link href="#activity-stream" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Activity Stream</Link>
+            {moduleControls.showServiceOverview && <Link href="#service-overview" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Service Overview</Link>}
+            {moduleControls.showActivityStream && <Link href="#activity-stream" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Activity Stream</Link>}
           </div>
         </section>
 
-        <section className="card card-pad bg-gradient-to-br from-white to-slate-50">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="max-w-3xl space-y-2">
-              <div className="chip bg-brand-100 text-brand-800 ring-brand-200 font-semibold">Hybrid clinic modules</div>
-              <h2 className="text-2xl font-bold text-slate-900">Specialty landing zones for physical rehabilitation, wound care, and aesthetics</h2>
-              <p className="text-sm text-slate-600">
-                These sections are provisioned with matching providers, service types, and seeded encounters so the clinic can work the way each specialty actually runs.
-              </p>
+        {moduleControls.showKpiCards && (
+          <section className="card card-pad bg-gradient-to-br from-white to-slate-50">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-3xl space-y-2">
+                <div className="chip bg-brand-100 text-brand-800 ring-brand-200 font-semibold">Hybrid clinic modules</div>
+                <h2 className="text-2xl font-bold text-slate-900">Specialty landing zones for physical rehabilitation, wound care, and aesthetics</h2>
+                <p className="text-sm text-slate-600">
+                  These sections are provisioned with matching providers, service types, and seeded encounters so the clinic can work the way each specialty actually runs.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm min-w-[240px]">
+                <Stat label="Providers" value={providers.length} />
+                <Stat label="Services" value={serviceTypes.length} />
+                <Stat label="Upcoming" value={appointments.length} />
+                <Stat label="Open notes" value={encounters.filter(e => e.status === "open").length} />
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-sm min-w-[240px]">
-              <Stat label="Providers" value={providers.length} />
-              <Stat label="Services" value={serviceTypes.length} />
-              <Stat label="Upcoming" value={appointments.length} />
-              <Stat label="Open notes" value={encounters.filter(e => e.status === "open").length} />
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         <div id="module-directory" className="grid grid-cols-1 xl:grid-cols-3 gap-4 scroll-mt-32">
-          {CLINICAL_MODULES.map(module => {
+          {activeModules.map(module => {
+            const runtime = moduleControls.modules[module.key];
             const moduleServices = serviceTypes.filter(service => service.category === module.key);
             const moduleAppointments = appointments.filter(appointment => appointment.serviceType?.category === module.key);
             const moduleEncounters = encounters.filter(encounter => encounter.provider?.specialty?.toLowerCase().includes(module.key === "physical-therapy" ? "physical therapy" : module.key === "wound-care" ? "wound care" : "aesthetic") || encounter.chiefComplaint?.toLowerCase().includes(module.key === "physical-therapy" ? "pt" : module.key === "wound-care" ? "wound" : "aesthetic"));
@@ -117,6 +129,16 @@ export default async function ModulesPage() {
                     <Stat label="Open notes" value={moduleEncounters.filter(e => e.status === "open").length} />
                   </div>
 
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={`chip ${runtime.allowScheduling ? "bg-blue-100 text-blue-800 ring-blue-200" : "bg-slate-100 text-slate-600 ring-slate-200"}`}>Scheduling</span>
+                    <span className={`chip ${runtime.allowEncounters ? "bg-blue-100 text-blue-800 ring-blue-200" : "bg-slate-100 text-slate-600 ring-slate-200"}`}>Encounters</span>
+                    <span className={`chip ${runtime.allowOrders ? "bg-blue-100 text-blue-800 ring-blue-200" : "bg-slate-100 text-slate-600 ring-slate-200"}`}>Orders</span>
+                    <span className={`chip ${runtime.allowBilling ? "bg-blue-100 text-blue-800 ring-blue-200" : "bg-slate-100 text-slate-600 ring-slate-200"}`}>Billing</span>
+                    <span className={`chip ${runtime.allowTelehealth ? "bg-violet-100 text-violet-800 ring-violet-200" : "bg-slate-100 text-slate-600 ring-slate-200"}`}>Telehealth</span>
+                  </div>
+
+                  <div className="text-xs text-slate-500">Default visit {runtime.defaultVisitLengthMinutes} min · Max/day {runtime.maxDailyVisits} · Intake checklist {runtime.requireIntakeChecklist ? "required" : "optional"}</div>
+
                   <div className="flex flex-wrap gap-2">
                     <Link href={`/modules/${module.slug}`} className="chip bg-brand-100 text-brand-800 ring-brand-200 hover:bg-brand-200">Open workspace</Link>
                     <Link href="/schedule" className="chip bg-slate-100 text-slate-700 ring-slate-200 hover:bg-slate-200">Schedule</Link>
@@ -161,10 +183,11 @@ export default async function ModulesPage() {
           })}
         </div>
 
+        {moduleControls.showServiceOverview && (
         <section id="service-overview" className="card scroll-mt-32">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Service overview by specialty</header>
           <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-            {CLINICAL_MODULES.map((module) => {
+            {activeModules.map((module) => {
               const moduleServices = serviceTypes.filter((service) => service.category === module.key);
               return (
                 <div key={module.key} className="rounded-md bg-slate-50 ring-1 ring-slate-200 p-3">
@@ -176,11 +199,13 @@ export default async function ModulesPage() {
             })}
           </div>
         </section>
+        )}
 
+        {moduleControls.showActivityStream && (
         <section id="activity-stream" className="card scroll-mt-32">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Recent module activity</header>
           <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
-            {CLINICAL_MODULES.map(module => {
+            {activeModules.map(module => {
               const latestEncounter = encounters.find(encounter => encounter.provider?.specialty?.toLowerCase().includes(module.key === "physical-therapy" ? "physical therapy" : module.key === "wound-care" ? "wound care" : "aesthetic"));
               const latestAppointment = appointments.find(appointment => appointment.serviceType?.category === module.key);
 
@@ -204,6 +229,7 @@ export default async function ModulesPage() {
             })}
           </div>
         </section>
+        )}
       </div>
     </Shell>
   );

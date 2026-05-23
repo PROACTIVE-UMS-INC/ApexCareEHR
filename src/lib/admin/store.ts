@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { ClinicalModuleKey } from "@/lib/modules";
 
 export type StaffRole = "provider" | "nurse" | "frontdesk" | "billing" | "admin";
 
@@ -63,12 +64,47 @@ export type PortalConfig = {
   showLabResultsAfterDays: number;
 };
 
+export type ModuleFeatureConfig = {
+  enabled: boolean;
+  visibleInSidebar: boolean;
+  allowScheduling: boolean;
+  allowEncounters: boolean;
+  allowOrders: boolean;
+  allowBilling: boolean;
+  allowPortalBooking: boolean;
+  allowTelehealth: boolean;
+  requireIntakeChecklist: boolean;
+  defaultVisitLengthMinutes: number;
+  maxDailyVisits: number;
+};
+
+export type ModuleIntegrationsConfig = {
+  labcorpOutbound: boolean;
+  availityEligibility: boolean;
+  superbillAutomation: boolean;
+  googleMeetTelehealth: boolean;
+  claimScrubber: boolean;
+  priorAuthTracking: boolean;
+};
+
+export type ModulesConfig = {
+  moduleHubEnabled: boolean;
+  showKpiCards: boolean;
+  showServiceOverview: boolean;
+  showActivityStream: boolean;
+  autoExpandModuleMenu: boolean;
+  enforceRoleAccess: boolean;
+  modules: Record<ClinicalModuleKey, ModuleFeatureConfig>;
+  integrations: ModuleIntegrationsConfig;
+};
+
 export type AdminConfig = {
   branding: BrandingConfig;
   landing: LandingConfig;
   org: OrgConfig;
   security: SecurityConfig;
   portal: PortalConfig;
+  modules: ModulesConfig;
   roles: Record<StaffRole, RolePermissionSet>;
 };
 
@@ -119,6 +155,63 @@ const DEFAULTS: AdminConfig = {
     allowDirectMessaging: true,
     allowOnlinePayments: false,
     showLabResultsAfterDays: 2,
+  },
+  modules: {
+    moduleHubEnabled: true,
+    showKpiCards: true,
+    showServiceOverview: true,
+    showActivityStream: true,
+    autoExpandModuleMenu: true,
+    enforceRoleAccess: false,
+    modules: {
+      "physical-therapy": {
+        enabled: true,
+        visibleInSidebar: true,
+        allowScheduling: true,
+        allowEncounters: true,
+        allowOrders: true,
+        allowBilling: true,
+        allowPortalBooking: true,
+        allowTelehealth: true,
+        requireIntakeChecklist: true,
+        defaultVisitLengthMinutes: 45,
+        maxDailyVisits: 28,
+      },
+      "wound-care": {
+        enabled: true,
+        visibleInSidebar: true,
+        allowScheduling: true,
+        allowEncounters: true,
+        allowOrders: true,
+        allowBilling: true,
+        allowPortalBooking: false,
+        allowTelehealth: true,
+        requireIntakeChecklist: true,
+        defaultVisitLengthMinutes: 40,
+        maxDailyVisits: 22,
+      },
+      "aesthetic-medicine": {
+        enabled: true,
+        visibleInSidebar: true,
+        allowScheduling: true,
+        allowEncounters: true,
+        allowOrders: true,
+        allowBilling: true,
+        allowPortalBooking: true,
+        allowTelehealth: true,
+        requireIntakeChecklist: false,
+        defaultVisitLengthMinutes: 30,
+        maxDailyVisits: 36,
+      },
+    },
+    integrations: {
+      labcorpOutbound: true,
+      availityEligibility: true,
+      superbillAutomation: true,
+      googleMeetTelehealth: true,
+      claimScrubber: true,
+      priorAuthTracking: true,
+    },
   },
   roles: {
     provider: {
@@ -203,6 +296,30 @@ export async function readAdminConfig(): Promise<AdminConfig> {
       org: { ...DEFAULTS.org, ...(parsed.org ?? {}) },
       security: { ...DEFAULTS.security, ...(parsed.security ?? {}) },
       portal: { ...DEFAULTS.portal, ...(parsed.portal ?? {}) },
+      modules: {
+        ...DEFAULTS.modules,
+        ...(parsed.modules ?? {}),
+        modules: {
+          ...DEFAULTS.modules.modules,
+          ...(parsed.modules?.modules ?? {}),
+          "physical-therapy": {
+            ...DEFAULTS.modules.modules["physical-therapy"],
+            ...(parsed.modules?.modules?.["physical-therapy"] ?? {}),
+          },
+          "wound-care": {
+            ...DEFAULTS.modules.modules["wound-care"],
+            ...(parsed.modules?.modules?.["wound-care"] ?? {}),
+          },
+          "aesthetic-medicine": {
+            ...DEFAULTS.modules.modules["aesthetic-medicine"],
+            ...(parsed.modules?.modules?.["aesthetic-medicine"] ?? {}),
+          },
+        },
+        integrations: {
+          ...DEFAULTS.modules.integrations,
+          ...(parsed.modules?.integrations ?? {}),
+        },
+      },
       roles: {
         ...DEFAULTS.roles,
         ...(parsed.roles ?? {}),

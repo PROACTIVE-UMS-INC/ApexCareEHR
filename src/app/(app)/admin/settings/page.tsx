@@ -16,6 +16,7 @@ export default async function AdminSettingsPage() {
           initialOrg={config.org}
           initialSecurity={config.security}
           initialPortal={config.portal}
+          initialModules={config.modules}
         />
       </div>
     </Shell>

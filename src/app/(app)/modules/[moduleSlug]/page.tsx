@@ -6,6 +6,7 @@ import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { colorForCategory, fmtDateTime } from "@/lib/utils";
 import { getModuleBySlug, MODULE_SERVICE_FALLBACKS } from "@/lib/modules";
+import { readAdminConfig } from "@/lib/admin/store";
 
 export default async function ModuleDetailPage({ params }: { params: Promise<{ moduleSlug: string }> }) {
   const { moduleSlug } = await params;
@@ -13,6 +14,18 @@ export default async function ModuleDetailPage({ params }: { params: Promise<{ m
   if (!moduleDef) notFound();
 
   const user = await requireSession();
+  const adminConfig = await readAdminConfig();
+  const moduleRuntime = adminConfig.modules.modules[moduleDef.key];
+
+  if (!adminConfig.modules.moduleHubEnabled || !moduleRuntime.enabled) {
+    return (
+      <Shell user={user} pageTitle={`${moduleDef.title} Module`} jellyBeans={<JellyBeans />}>
+        <div className="card card-pad border-amber-200 bg-amber-50 text-amber-900">
+          {moduleDef.title} is currently disabled in Admin Operational Settings.
+        </div>
+      </Shell>
+    );
+  }
 
   let providers: Array<any> = [];
   let services: Array<any> = MODULE_SERVICE_FALLBACKS;
@@ -83,16 +96,24 @@ export default async function ModuleDetailPage({ params }: { params: Promise<{ m
               <Stat label="Ready billing" value={moduleBillingCount} />
             </div>
           </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className={`chip ${moduleRuntime.allowTelehealth ? "bg-violet-100 text-violet-800 ring-violet-200" : "bg-slate-100 text-slate-700 ring-slate-200"}`}>Telehealth {moduleRuntime.allowTelehealth ? "enabled" : "disabled"}</span>
+            <span className={`chip ${moduleRuntime.allowPortalBooking ? "bg-blue-100 text-blue-800 ring-blue-200" : "bg-slate-100 text-slate-700 ring-slate-200"}`}>Portal booking {moduleRuntime.allowPortalBooking ? "enabled" : "disabled"}</span>
+            <span className={`chip ${moduleRuntime.requireIntakeChecklist ? "bg-amber-100 text-amber-800 ring-amber-200" : "bg-slate-100 text-slate-700 ring-slate-200"}`}>Intake checklist {moduleRuntime.requireIntakeChecklist ? "required" : "optional"}</span>
+            <span className="chip bg-slate-100 text-slate-700 ring-slate-200">Default visit {moduleRuntime.defaultVisitLengthMinutes} min</span>
+            <span className="chip bg-slate-100 text-slate-700 ring-slate-200">Max/day {moduleRuntime.maxDailyVisits}</span>
+          </div>
         </section>
 
         <section className="card card-pad">
           <h3 className="font-semibold text-slate-900 mb-2">Integrated module actions</h3>
           <div className="flex flex-wrap gap-2">
-            <Link href="/schedule" className="btn-secondary">Schedule visits</Link>
+            {moduleRuntime.allowScheduling && <Link href="/schedule" className="btn-secondary">Schedule visits</Link>}
             <Link href={`/services?category=${moduleDef.key}`} className="btn-secondary">View service catalog</Link>
-            <Link href="/encounters" className="btn-secondary">Document encounters</Link>
-            <Link href="/orders" className="btn-secondary">Manage orders</Link>
-            <Link href="/billing" className="btn-secondary">Submit billing and superbills</Link>
+            {moduleRuntime.allowEncounters && <Link href="/encounters" className="btn-secondary">Document encounters</Link>}
+            {moduleRuntime.allowOrders && <Link href="/orders" className="btn-secondary">Manage orders</Link>}
+            {moduleRuntime.allowBilling && <Link href="/billing" className="btn-secondary">Submit billing and superbills</Link>}
+            {moduleRuntime.allowTelehealth && adminConfig.modules.integrations.googleMeetTelehealth && <Link href="/schedule" className="btn-secondary">Launch telehealth queue</Link>}
           </div>
         </section>
 
