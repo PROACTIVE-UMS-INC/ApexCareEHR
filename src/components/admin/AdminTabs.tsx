@@ -4,6 +4,7 @@ const TABS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/roles", label: "Roles" },
+  { href: "/admin/agents", label: "Autonomous Agents" },
   { href: "/admin/branding", label: "Branding" },
   { href: "/admin/landing", label: "Landing Page" },
   { href: "/admin/settings", label: "Ops Settings" },
