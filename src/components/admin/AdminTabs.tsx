@@ -17,6 +17,7 @@ export default function AdminTabs({ active }: { active: string }) {
         <Link
           key={tab.href}
           href={tab.href}
+          prefetch={false}
           className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
             active === tab.href
               ? "bg-brand-600 text-white"

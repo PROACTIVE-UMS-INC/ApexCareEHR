@@ -81,7 +81,7 @@ export default async function DashboardPage() {
         <section className="card lg:col-span-2">
           <header className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
             <div className="font-semibold text-slate-900">Today's Schedule</div>
-            <Link href="/schedule" className="text-xs font-semibold text-brand-700 hover:underline">Open schedule →</Link>
+            <Link href="/schedule" prefetch={false} className="text-xs font-semibold text-brand-700 hover:underline">Open schedule →</Link>
           </header>
           {todays.length === 0 ? (
             <div className="p-6 text-sm text-slate-500">No appointments today.</div>
@@ -90,7 +90,7 @@ export default async function DashboardPage() {
               {todays.map(a => (
                 <li key={a.id} className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50">
                   <div className="w-20 text-sm font-semibold text-slate-700">{fmtTime(a.startsAt)}</div>
-                  <Link href={`/patients/${a.patientId}`} className="flex-1 min-w-0">
+                  <Link href={`/patients/${a.patientId}`} prefetch={false} className="flex-1 min-w-0">
                     <div className="font-medium text-slate-900 truncate">{a.patient.lastName}, {a.patient.firstName}</div>
                     <div className="text-xs text-slate-500 truncate">{a.reason || a.serviceType?.name || "Office visit"} · with {a.provider.firstName} {a.provider.lastName}{a.provider.credential ? `, ${a.provider.credential}` : ""}</div>
                   </Link>
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
             <ul className="divide-y divide-slate-100">
               {openEncounters.map(e => (
                 <li key={e.id} className="px-4 py-3 hover:bg-slate-50">
-                  <Link href={`/encounters/${e.id}`} className="block">
+                  <Link href={`/encounters/${e.id}`} prefetch={false} className="block">
                     <div className="font-medium text-slate-900">{e.patient.lastName}, {e.patient.firstName}</div>
                     <div className="text-xs text-slate-500 truncate">{e.chiefComplaint || "—"} · {fmtDateTime(e.startedAt)}</div>
                   </Link>
@@ -129,7 +129,7 @@ export default async function DashboardPage() {
           <ul className="divide-y divide-slate-100">
             {recentPatients.map(p => (
               <li key={p.id} className="px-4 py-3 hover:bg-slate-50">
-                <Link href={`/patients/${p.id}`}>
+                <Link href={`/patients/${p.id}`} prefetch={false}>
                   <div className="font-medium text-slate-900">{p.lastName}, {p.firstName}</div>
                   <div className="text-xs text-slate-500">MRN {p.mrn} · DOB {new Date(p.dob).toLocaleDateString()}</div>
                 </Link>
@@ -151,7 +151,7 @@ export default async function DashboardPage() {
               <tbody>
                 {openOrders.map(o => (
                   <tr key={o.id}>
-                    <td><Link href={`/patients/${o.patientId}`} className="text-brand-700 hover:underline">{o.patient.lastName}, {o.patient.firstName}</Link></td>
+                    <td><Link href={`/patients/${o.patientId}`} prefetch={false} className="text-brand-700 hover:underline">{o.patient.lastName}, {o.patient.firstName}</Link></td>
                     <td className="uppercase text-xs font-semibold text-slate-600">{o.type}</td>
                     <td className="truncate max-w-[280px]">{o.itemName}</td>
                     <td><span className={`chip ${o.priority === "stat" ? "bg-rose-100 text-rose-800 ring-rose-200" : "bg-slate-100 text-slate-700 ring-slate-200"}`}>{o.priority}</span></td>

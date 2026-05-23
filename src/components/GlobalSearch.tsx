@@ -55,6 +55,7 @@ export default function GlobalSearch() {
             <Link
               key={h.id}
               href={`/patients/${h.id}`}
+              prefetch={false}
               className="flex items-center justify-between px-3 py-2 text-sm hover:bg-brand-50"
               onClick={() => setOpen(false)}
             >

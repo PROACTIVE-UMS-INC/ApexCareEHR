@@ -75,7 +75,7 @@ export function PatientTabs({ patientId, active }: { patientId: string; active: 
     <div className="border-b border-slate-200 bg-white px-4 sticky top-[var(--header-h)] z-20">
       <nav className="flex flex-wrap items-center -mb-px">
         {tabs.map(t => (
-          <Link key={t.id} href={t.href} className={`tab-link ${active === t.id ? "active" : ""}`}>
+          <Link key={t.id} href={t.href} prefetch={false} className={`tab-link ${active === t.id ? "active" : ""}`}>
             {t.label}
           </Link>
         ))}

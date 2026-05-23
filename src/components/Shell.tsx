@@ -103,6 +103,7 @@ export default function Shell({
               <div key={item.href}>
                 <Link
                   href={item.href}
+                  prefetch={false}
                   onClick={mobile ? closeMobileMenu : undefined}
                   className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition ${active ? "bg-teal-400/20 text-white" : "text-slate-100 hover:bg-teal-400/20 hover:text-white"}`}
                 >
@@ -117,6 +118,7 @@ export default function Shell({
                         <Link
                           key={child.href}
                           href={child.href}
+                          prefetch={false}
                           onClick={mobile ? closeMobileMenu : undefined}
                           className={`block rounded-md px-2 py-1 text-xs transition ${childActive ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}
                         >
@@ -154,7 +156,7 @@ export default function Shell({
             {mobileMenuOpen ? <Icon.X /> : <Icon.Menu />}
           </button>
 
-          <Link href="/dashboard" className="flex items-center mr-0 sm:mr-2" title="ApexCare EHR">
+          <Link href="/dashboard" prefetch={false} className="flex items-center mr-0 sm:mr-2" title="ApexCare EHR">
             <img
               src="/logoehr.png"
               alt="ApexCare EHR"
@@ -170,10 +172,10 @@ export default function Shell({
           <div className="hidden lg:flex items-center gap-1.5">{jellyBeans}</div>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <Link href="/messages" className="relative h-9 w-9 rounded-full hover:bg-slate-100 grid place-items-center text-slate-500" title="Messages">
+            <Link href="/messages" prefetch={false} className="relative h-9 w-9 rounded-full hover:bg-slate-100 grid place-items-center text-slate-500" title="Messages">
               <Icon.Mail />
             </Link>
-            <Link href="/dashboard?view=tasks" className="h-9 w-9 rounded-full hover:bg-slate-100 grid place-items-center text-slate-500" title="Tasks">
+            <Link href="/dashboard?view=tasks" prefetch={false} className="h-9 w-9 rounded-full hover:bg-slate-100 grid place-items-center text-slate-500" title="Tasks">
               <Icon.Bell />
             </Link>
             <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200">
@@ -280,6 +282,7 @@ export default function Shell({
                   <Link
                     key={link.href}
                     href={link.href}
+                    prefetch={false}
                     className={`chip ${quickActive ? "bg-teal-100 text-teal-800 ring-teal-300" : "bg-white text-slate-600 ring-slate-200 hover:bg-slate-50"}`}
                   >
                     {link.label}
