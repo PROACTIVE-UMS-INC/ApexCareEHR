@@ -10,22 +10,44 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
   const user = await requireSession();
   const q = (sp.q || "").trim();
 
-  const patients = await db.patient.findMany({
-    where: q ? {
-      OR: [
-        { firstName: { contains: q } },
-        { lastName: { contains: q } },
-        { mrn: { contains: q } },
-        { email: { contains: q } },
-        { phone: { contains: q } },
-      ],
-    } : undefined,
-    orderBy: { lastName: "asc" },
-    take: 100,
-  });
+  let patients: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    mrn: string;
+    sex: string;
+    dob: Date;
+    phone: string | null;
+    insurerName: string | null;
+    status: string;
+  }> = [];
+  let dataUnavailable = false;
+
+  try {
+    patients = await db.patient.findMany({
+      where: q ? {
+        OR: [
+          { firstName: { contains: q } },
+          { lastName: { contains: q } },
+          { mrn: { contains: q } },
+          { email: { contains: q } },
+          { phone: { contains: q } },
+        ],
+      } : undefined,
+      orderBy: { lastName: "asc" },
+      take: 100,
+    });
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <Shell user={user} pageTitle="Patients" jellyBeans={<JellyBeans />}>
+      {dataUnavailable && (
+        <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">
+          Patient records are temporarily unavailable. Try again shortly.
+        </div>
+      )}
       <div className="card">
         <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3">
           <form className="flex-1">

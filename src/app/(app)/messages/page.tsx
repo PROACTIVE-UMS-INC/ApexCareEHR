@@ -7,21 +7,51 @@ import { fmtRelative } from "@/lib/utils";
 
 export default async function Messages() {
   const user = await requireSession();
-  const inbox = await db.message.findMany({
-    where: { toUserId: user.id },
-    include: { fromUser: true, patient: true },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
-  const sent = await db.message.findMany({
-    where: { fromUserId: user.id },
-    include: { toUser: true, patient: true },
-    orderBy: { createdAt: "desc" },
-    take: 25,
-  });
+  let inbox: Array<{
+    id: string;
+    subject: string;
+    body: string;
+    read: boolean;
+    createdAt: Date;
+    patientId: string | null;
+    fromUser: { firstName: string; lastName: string };
+    patient: { firstName: string; lastName: string } | null;
+  }> = [];
+  let sent: Array<{
+    id: string;
+    subject: string;
+    body: string;
+    createdAt: Date;
+    toUser: { firstName: string; lastName: string } | null;
+  }> = [];
+  let dataUnavailable = false;
+
+  try {
+    [inbox, sent] = await Promise.all([
+      db.message.findMany({
+        where: { toUserId: user.id },
+        include: { fromUser: true, patient: true },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+      db.message.findMany({
+        where: { fromUserId: user.id },
+        include: { toUser: true, patient: true },
+        orderBy: { createdAt: "desc" },
+        take: 25,
+      }),
+    ]);
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <Shell user={user} pageTitle="Messages" jellyBeans={<JellyBeans />}>
+      {dataUnavailable && (
+        <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">
+          Messages are temporarily unavailable.
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section className="card">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold">Inbox ({inbox.filter(m => !m.read).length} unread)</header>

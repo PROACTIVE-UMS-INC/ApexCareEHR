@@ -8,14 +8,38 @@ import { fmtDateTime } from "@/lib/utils";
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ type?: string; status?: string }> }) {
   const sp = await searchParams;
   const user = await requireSession();
-  const orders = await db.order.findMany({
-    where: { ...(sp.type ? { type: sp.type } : {}), ...(sp.status ? { status: sp.status } : {}) },
-    include: { patient: true, provider: true },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
+  let orders: Array<{
+    id: string;
+    type: string;
+    patientId: string;
+    itemName: string;
+    rxStrength: string | null;
+    rxSig: string | null;
+    instructions: string | null;
+    status: string;
+    createdAt: Date;
+    patient: { firstName: string; lastName: string };
+    provider: { firstName: string; lastName: string };
+  }> = [];
+  let dataUnavailable = false;
+
+  try {
+    orders = await db.order.findMany({
+      where: { ...(sp.type ? { type: sp.type } : {}), ...(sp.status ? { status: sp.status } : {}) },
+      include: { patient: true, provider: true },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+  } catch {
+    dataUnavailable = true;
+  }
   return (
     <Shell user={user} pageTitle="Orders" jellyBeans={<JellyBeans />}>
+      {dataUnavailable && (
+        <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">
+          Orders data is temporarily unavailable. Try again in a moment.
+        </div>
+      )}
       {(sp.type === "lab" || !sp.type) && (
         <div className="card card-pad mb-3">
           <div className="flex items-center justify-between gap-2">

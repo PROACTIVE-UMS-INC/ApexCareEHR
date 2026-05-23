@@ -5,15 +5,41 @@ import JellyBeans from "@/components/JellyBeans";
 
 export default async function Settings() {
   const user = await requireSession();
-  const staff = await db.user.findMany({ where: { active: true }, orderBy: [{ role: "asc" }, { lastName: "asc" }] });
-  const counts = await db.$transaction([
-    db.patient.count(),
-    db.encounter.count(),
-    db.order.count(),
-    db.appointment.count(),
-  ]);
+  let staff: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    credential: string | null;
+    role: string;
+    specialty: string | null;
+    npi: string | null;
+    email: string;
+  }> = [];
+  let counts = [0, 0, 0, 0];
+  let dataUnavailable = false;
+
+  try {
+    const result = await Promise.all([
+      db.user.findMany({ where: { active: true }, orderBy: [{ role: "asc" }, { lastName: "asc" }] }),
+      db.$transaction([
+        db.patient.count(),
+        db.encounter.count(),
+        db.order.count(),
+        db.appointment.count(),
+      ]),
+    ]);
+    staff = result[0];
+    counts = result[1] as number[];
+  } catch {
+    dataUnavailable = true;
+  }
   return (
     <Shell user={user} pageTitle="Settings" jellyBeans={<JellyBeans />}>
+      {dataUnavailable && (
+        <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">
+          Settings data is temporarily unavailable. Showing fallback totals.
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <section className="card lg:col-span-2">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold">Practice Staff</header>

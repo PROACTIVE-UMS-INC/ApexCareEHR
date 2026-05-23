@@ -13,18 +13,38 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
   const day = sp.d ? parseISO(sp.d) : new Date();
   const providerId = sp.providerId || "";
 
-  const [providers, services, appts] = await Promise.all([
-    db.user.findMany({ where: { role: "provider", active: true }, orderBy: { lastName: "asc" } }),
-    db.serviceType.findMany({ where: { active: true }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
-    db.appointment.findMany({
-      where: {
-        startsAt: { gte: startOfDay(day), lte: endOfDay(day) },
-        ...(providerId ? { providerId } : {}),
-      },
-      include: { patient: true, provider: true, serviceType: true },
-      orderBy: { startsAt: "asc" },
-    }),
-  ]);
+  let providers: Array<{ id: string; firstName: string; lastName: string; credential: string | null }> = [];
+  let services: Array<{ id: string; name: string; durationMin: number; category: string; homeEligible: boolean }> = [];
+  let appts: Array<{
+    id: string;
+    patientId: string;
+    startsAt: Date;
+    endsAt: Date;
+    status: string;
+    notes: string | null;
+    reason: string | null;
+    patient: { firstName: string; lastName: string };
+    provider: { lastName: string };
+    serviceType: { name: string; category: string } | null;
+  }> = [];
+  let dataUnavailable = false;
+
+  try {
+    [providers, services, appts] = await Promise.all([
+      db.user.findMany({ where: { role: "provider", active: true }, orderBy: { lastName: "asc" } }),
+      db.serviceType.findMany({ where: { active: true }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
+      db.appointment.findMany({
+        where: {
+          startsAt: { gte: startOfDay(day), lte: endOfDay(day) },
+          ...(providerId ? { providerId } : {}),
+        },
+        include: { patient: true, provider: true, serviceType: true },
+        orderBy: { startsAt: "asc" },
+      }),
+    ]);
+  } catch {
+    dataUnavailable = true;
+  }
 
   const prev = format(addDays(day, -1), "yyyy-MM-dd");
   const next = format(addDays(day, 1), "yyyy-MM-dd");
@@ -38,6 +58,11 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
 
   return (
     <Shell user={user} jellyBeans={<JellyBeans />} pageTitle={`Schedule — ${format(day, "EEEE, MMM d, yyyy")}`}>
+      {dataUnavailable && (
+        <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">
+          Schedule data is temporarily unavailable. Calendar actions are limited.
+        </div>
+      )}
       <div className="card">
         <header className="px-4 py-3 border-b border-slate-200 flex items-center gap-2 flex-wrap">
           <Link href={`/schedule?d=${prev}${providerId ? `&providerId=${providerId}` : ""}`} className="btn-secondary">← Prev</Link>

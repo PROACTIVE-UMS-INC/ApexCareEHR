@@ -7,12 +7,28 @@ import { fmtDateTime, fmtMoney } from "@/lib/utils";
 
 export default async function BillingPage() {
   const user = await requireSession();
-  const enc = await db.encounter.findMany({
-    where: { charges: { some: {} } },
-    include: { patient: true, provider: true, charges: true, diagnoses: true },
-    orderBy: { startedAt: "desc" },
-    take: 200,
-  });
+  let enc: Array<{
+    id: string;
+    patientId: string;
+    startedAt: Date;
+    status: string;
+    patient: { firstName: string; lastName: string };
+    provider: { firstName: string; lastName: string };
+    diagnoses: Array<{ icd10: string }>;
+    charges: Array<{ cpt: string; feeCents: number; units: number }>;
+  }> = [];
+  let dataUnavailable = false;
+
+  try {
+    enc = await db.encounter.findMany({
+      where: { charges: { some: {} } },
+      include: { patient: true, provider: true, charges: true, diagnoses: true },
+      orderBy: { startedAt: "desc" },
+      take: 200,
+    });
+  } catch {
+    dataUnavailable = true;
+  }
 
   const grand = enc.flatMap(e => e.charges).reduce((s, c) => s + c.feeCents * c.units, 0);
   const signedTotal = enc.filter(e => e.status === "signed").flatMap(e => e.charges).reduce((s, c) => s + c.feeCents * c.units, 0);
@@ -20,6 +36,11 @@ export default async function BillingPage() {
 
   return (
     <Shell user={user} pageTitle="Billing" jellyBeans={<JellyBeans />}>
+      {dataUnavailable && (
+        <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">
+          Billing data is temporarily unavailable. Totals are showing fallback values.
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <Stat label="Total billed" value={fmtMoney(grand)} accent="brand" />
         <Stat label="Ready to submit (signed)" value={fmtMoney(signedTotal)} accent="emerald" />

@@ -8,17 +8,33 @@ export default async function AdminOverviewPage() {
   const user = await requireAdminSession();
   const config = await readAdminConfig();
 
-  const [users, activePatients, encounters, appointments, openOrders] = await Promise.all([
-    db.user.count(),
-    db.patient.count({ where: { status: "active" } }),
-    db.encounter.count(),
-    db.appointment.count(),
-    db.order.count({ where: { status: "pending" } }),
-  ]);
+  let users = 0;
+  let activePatients = 0;
+  let encounters = 0;
+  let appointments = 0;
+  let openOrders = 0;
+  let dataUnavailable = false;
+
+  try {
+    [users, activePatients, encounters, appointments, openOrders] = await Promise.all([
+      db.user.count(),
+      db.patient.count({ where: { status: "active" } }),
+      db.encounter.count(),
+      db.appointment.count(),
+      db.order.count({ where: { status: "pending" } }),
+    ]);
+  } catch {
+    dataUnavailable = true;
+  }
 
   return (
     <Shell user={user} pageTitle="Admin Console">
       <div className="space-y-4">
+        {dataUnavailable && (
+          <div className="card card-pad border-amber-200 bg-amber-50 text-amber-900">
+            Admin metrics are temporarily unavailable.
+          </div>
+        )}
         <AdminTabs active="/admin" />
         <section className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <Stat label="Staff Users" value={users} />

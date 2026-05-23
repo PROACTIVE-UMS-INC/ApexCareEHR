@@ -9,14 +9,34 @@ export default async function EncList({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const user = await requireSession();
   const status = sp.status;
-  const enc = await db.encounter.findMany({
-    where: status ? { status } : undefined,
-    include: { patient: true, provider: true },
-    orderBy: { startedAt: "desc" },
-    take: 100,
-  });
+  let enc: Array<{
+    id: string;
+    patientId: string;
+    startedAt: Date;
+    chiefComplaint: string | null;
+    status: string;
+    patient: { firstName: string; lastName: string };
+    provider: { firstName: string; lastName: string };
+  }> = [];
+  let dataUnavailable = false;
+
+  try {
+    enc = await db.encounter.findMany({
+      where: status ? { status } : undefined,
+      include: { patient: true, provider: true },
+      orderBy: { startedAt: "desc" },
+      take: 100,
+    });
+  } catch {
+    dataUnavailable = true;
+  }
   return (
     <Shell user={user} pageTitle="Encounters" jellyBeans={<JellyBeans />}>
+      {dataUnavailable && (
+        <div className="card card-pad mb-3 border-amber-200 bg-amber-50 text-amber-900">
+          Encounter data is temporarily unavailable. Try again in a moment.
+        </div>
+      )}
       <div className="card">
         <header className="px-4 py-3 border-b border-slate-200 flex items-center gap-2">
           <Link href="/encounters" className={`chip ring-1 ring-inset ${!status ? "bg-brand-100 text-brand-800 ring-brand-200" : "bg-slate-100 text-slate-700 ring-slate-200"}`}>All</Link>
