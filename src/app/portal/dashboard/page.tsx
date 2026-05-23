@@ -11,7 +11,7 @@ export default async function PortalDashboardPage() {
   let dataUnavailable = false;
 
   try {
-    [upcoming, recentDocs, unreadCount] = await Promise.all([
+    const results = await Promise.allSettled([
       db.appointment.findMany({
         where: { patientId: session.patientId, startsAt: { gte: new Date() } },
         include: { provider: true, serviceType: true },
@@ -25,6 +25,11 @@ export default async function PortalDashboardPage() {
       }),
       db.message.count({ where: { patientId: session.patientId, read: false } }),
     ]);
+
+    upcoming = results[0].status === "fulfilled" ? results[0].value : [];
+    recentDocs = results[1].status === "fulfilled" ? results[1].value : [];
+    unreadCount = results[2].status === "fulfilled" ? results[2].value : 0;
+    dataUnavailable = results.some((r) => r.status === "rejected");
   } catch {
     dataUnavailable = true;
   }

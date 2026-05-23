@@ -19,13 +19,20 @@ export default async function AdminOverviewPage() {
   const activeIntegrations = Object.values(config.modules.integrations).filter(Boolean).length;
 
   try {
-    [users, activePatients, encounters, appointments, openOrders] = await Promise.all([
+    const results = await Promise.allSettled([
       db.user.count(),
       db.patient.count({ where: { status: "active" } }),
       db.encounter.count(),
       db.appointment.count(),
       db.order.count({ where: { status: "pending" } }),
     ]);
+
+    users = results[0].status === "fulfilled" ? results[0].value : 0;
+    activePatients = results[1].status === "fulfilled" ? results[1].value : 0;
+    encounters = results[2].status === "fulfilled" ? results[2].value : 0;
+    appointments = results[3].status === "fulfilled" ? results[3].value : 0;
+    openOrders = results[4].status === "fulfilled" ? results[4].value : 0;
+    dataUnavailable = results.some((r) => r.status === "rejected");
   } catch {
     dataUnavailable = true;
   }

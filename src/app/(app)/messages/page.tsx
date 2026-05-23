@@ -27,7 +27,7 @@ export default async function Messages() {
   let dataUnavailable = false;
 
   try {
-    [inbox, sent] = await Promise.all([
+    const results = await Promise.allSettled([
       db.message.findMany({
         where: { toUserId: user.id },
         include: { fromUser: true, patient: true },
@@ -41,6 +41,10 @@ export default async function Messages() {
         take: 25,
       }),
     ]);
+
+    inbox = results[0].status === "fulfilled" ? results[0].value : [];
+    sent = results[1].status === "fulfilled" ? results[1].value : [];
+    dataUnavailable = results.some((r) => r.status === "rejected");
   } catch {
     dataUnavailable = true;
   }

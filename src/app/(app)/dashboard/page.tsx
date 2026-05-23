@@ -16,9 +16,10 @@ export default async function DashboardPage() {
   let openOrders: Array<any> = [];
   let unreadMessages = 0;
   let patientCount = 0;
+  let dataUnavailable = false;
 
   try {
-    const [dbTodays, dbOpenEncounters, dbRecentPatients, dbOpenOrders, dbUnreadMessages, dbPatientCount] = await Promise.all([
+    const results = await Promise.allSettled([
       db.appointment.findMany({
         where: {
           startsAt: { gte: startOfDay(today), lte: endOfDay(today) },
@@ -47,14 +48,16 @@ export default async function DashboardPage() {
       db.patient.count(),
     ]);
 
-    todays = dbTodays;
-    openEncounters = dbOpenEncounters;
-    recentPatients = dbRecentPatients;
-    openOrders = dbOpenOrders;
-    unreadMessages = dbUnreadMessages;
-    patientCount = dbPatientCount;
+    todays = results[0].status === "fulfilled" ? results[0].value : [];
+    openEncounters = results[1].status === "fulfilled" ? results[1].value : [];
+    recentPatients = results[2].status === "fulfilled" ? results[2].value : [];
+    openOrders = results[3].status === "fulfilled" ? results[3].value : [];
+    unreadMessages = results[4].status === "fulfilled" ? results[4].value : 0;
+    patientCount = results[5].status === "fulfilled" ? results[5].value : 0;
+    dataUnavailable = results.some((r) => r.status === "rejected");
   } catch {
     // Keep dashboard responsive when DB initialization fails in serverless runtime.
+    dataUnavailable = true;
   }
 
   const completed = todays.filter(a => a.status === "completed").length;
@@ -62,6 +65,11 @@ export default async function DashboardPage() {
   return (
     <Shell user={user} jellyBeans={<JellyBeans />}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {dataUnavailable && (
+          <div className="lg:col-span-3 card card-pad border-amber-200 bg-amber-50 text-amber-900">
+            Some dashboard metrics are temporarily unavailable.
+          </div>
+        )}
         {/* greeting + KPIs */}
         <div className="lg:col-span-3 flex flex-wrap items-end justify-between gap-3">
           <div>

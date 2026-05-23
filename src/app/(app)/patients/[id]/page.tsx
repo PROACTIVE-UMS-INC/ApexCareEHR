@@ -36,7 +36,7 @@ export default async function PatientSummary({ params }: { params: Promise<{ id:
     patient = await db.patient.findUnique({ where: { id } });
     if (!patient) notFound();
 
-    [allergies, problems, medications, vitalsLatest, encounters, upcoming, orders] = await Promise.all([
+    const results = await Promise.allSettled([
       db.allergy.findMany({ where: { patientId: id, status: "active" }, orderBy: { createdAt: "desc" } }),
       db.problem.findMany({ where: { patientId: id, status: { in: ["active", "chronic"] } }, orderBy: { createdAt: "desc" } }),
       db.medication.findMany({ where: { patientId: id, status: "active" }, orderBy: { createdAt: "desc" }, take: 8 }),
@@ -45,6 +45,15 @@ export default async function PatientSummary({ params }: { params: Promise<{ id:
       db.appointment.findMany({ where: { patientId: id, startsAt: { gte: new Date() } }, include: { provider: true, serviceType: true }, orderBy: { startsAt: "asc" }, take: 5 }),
       db.order.findMany({ where: { patientId: id }, orderBy: { createdAt: "desc" }, take: 8 }),
     ]);
+
+    allergies = results[0].status === "fulfilled" ? results[0].value : [];
+    problems = results[1].status === "fulfilled" ? results[1].value : [];
+    medications = results[2].status === "fulfilled" ? results[2].value : [];
+    vitalsLatest = results[3].status === "fulfilled" ? results[3].value : null;
+    encounters = results[4].status === "fulfilled" ? results[4].value : [];
+    upcoming = results[5].status === "fulfilled" ? results[5].value : [];
+    orders = results[6].status === "fulfilled" ? results[6].value : [];
+    dataUnavailable = results.some((r) => r.status === "rejected");
   } catch {
     dataUnavailable = true;
   }

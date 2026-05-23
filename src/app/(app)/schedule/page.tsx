@@ -30,7 +30,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
   let dataUnavailable = false;
 
   try {
-    [providers, services, appts] = await Promise.all([
+    const results = await Promise.allSettled([
       db.user.findMany({ where: { role: "provider", active: true }, orderBy: { lastName: "asc" } }),
       db.serviceType.findMany({ where: { active: true }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
       db.appointment.findMany({
@@ -42,6 +42,11 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
         orderBy: { startsAt: "asc" },
       }),
     ]);
+
+    providers = results[0].status === "fulfilled" ? results[0].value : [];
+    services = results[1].status === "fulfilled" ? results[1].value : [];
+    appts = results[2].status === "fulfilled" ? results[2].value : [];
+    dataUnavailable = results.some((r) => r.status === "rejected");
   } catch {
     dataUnavailable = true;
   }
