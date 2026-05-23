@@ -8,6 +8,7 @@ import PortalLogoutButton from "./PortalLogoutButton";
 const links = [
   { href: "/portal/dashboard", label: "Overview" },
   { href: "/portal/appointments", label: "Appointments" },
+  { href: "/portal/assistant", label: "AI Assistant" },
   { href: "/portal/messages", label: "Messages" },
   { href: "/portal/documents", label: "Documents" },
   { href: "/portal/profile", label: "Profile" },

@@ -5,13 +5,17 @@ const DEFAULT_AUTH_SECRET = "apexcare-dev-secret-change-me-in-production-please-
 const PUBLIC_PATHS = [
   "/login",
   "/landing",
-  "/portal",
   "/api/auth/login",
-  "/api/portal/auth/login",
-  "/api/portal/auth/logout",
   "/api/admin/config/public",
   "/_next",
   "/favicon.ico",
+];
+
+const PORTAL_PUBLIC_PATHS = [
+  "/portal",
+  "/portal/login",
+  "/api/portal/auth/login",
+  "/api/portal/auth/logout",
 ];
 
 function getSecret(): Uint8Array {
@@ -22,26 +26,54 @@ function getSecret(): Uint8Array {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) return NextResponse.next();
+
+  const isPortalPath = pathname.startsWith("/portal") || pathname.startsWith("/api/portal");
+  if (isPortalPath && PORTAL_PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return NextResponse.next();
+  }
+
   if (pathname.match(/\.(?:png|jpg|jpeg|svg|ico|gif|webp|woff2?|css|js|map)$/)) {
     return NextResponse.next();
   }
 
-  const token = req.cookies.get("apexcare_session")?.value;
+  const token = isPortalPath
+    ? req.cookies.get("apexcare_portal_session")?.value
+    : req.cookies.get("apexcare_session")?.value;
+
   if (!token) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = isPortalPath ? "/portal/login" : "/login";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
+
   try {
     await jwtVerify(token, getSecret());
     return NextResponse.next();
   } catch {
+    if (pathname.startsWith("/api/")) {
+      const apiRes = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      if (isPortalPath) {
+        apiRes.cookies.delete("apexcare_portal_session");
+      } else {
+        apiRes.cookies.delete("apexcare_session");
+      }
+      return apiRes;
+    }
+
     const url = req.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = isPortalPath ? "/portal/login" : "/login";
     url.searchParams.set("next", pathname);
     const res = NextResponse.redirect(url);
-    res.cookies.delete("apexcare_session");
+    if (isPortalPath) {
+      res.cookies.delete("apexcare_portal_session");
+    } else {
+      res.cookies.delete("apexcare_session");
+    }
     return res;
   }
 }
