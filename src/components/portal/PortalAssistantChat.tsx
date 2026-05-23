@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Message = {
   id: string;
@@ -10,23 +10,58 @@ type Message = {
 
 const STARTER_PROMPTS = [
   "Show my next appointment",
+  "Muestrame mi proxima cita",
   "Schedule on 2026-06-01 at 3:00 PM for physical therapy",
+  "Agenda una cita el 2026-06-01 a las 3:00 PM para terapia fisica",
   "Reschedule my appointment to 2026-06-03 at 10:30 AM",
+  "Reagenda mi cita para 2026-06-03 a las 10:30 AM",
   "Cancel my appointment",
+  "Cancela mi cita",
   "What is the practice support phone number?",
+  "Cual es el telefono de soporte de la clinica?",
 ];
 
+function detectLang(input: string) {
+  const text = input.toLowerCase();
+  if (/[\u00c0-\u017f]/.test(text)) return "es" as const;
+  if (/(hola|buenos|buenas|gracias|cita|agendar|reagendar|cancelar|portal|ayuda|clinica|correo|telefono)/.test(text)) return "es" as const;
+  return "en" as const;
+}
+
+function t(lang: "es" | "en", en: string, es: string) {
+  return lang === "es" ? es : en;
+}
+
 export default function PortalAssistantChat() {
+  const uiLang = useMemo<"es" | "en">(() => {
+    if (typeof navigator === "undefined") return "en";
+    return navigator.language.toLowerCase().startsWith("es") ? "es" : "en";
+  }, []);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      text:
-        "Hello. I am your ApexCare portal assistant. I can answer practice questions and help schedule, reschedule, or cancel appointments.",
+      text: t(
+        uiLang,
+        "Hello. I am your ApexCare portal assistant. You can talk to me in English or Spanish, and I can help with appointments and practice questions.",
+        "Hola. Soy tu asistente del portal ApexCare. Puedes hablar conmigo en espanol o ingles, y te ayudo con citas y preguntas de la clinica.",
+      ),
     },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [largeText, setLargeText] = useState(false);
+  const [readAloud, setReadAloud] = useState(true);
+
+  useEffect(() => {
+    if (!readAloud || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+    if (!lastAssistant) return;
+    const utterance = new SpeechSynthesisUtterance(lastAssistant.text);
+    utterance.lang = detectLang(lastAssistant.text) === "es" ? "es-US" : "en-US";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }, [messages, readAloud]);
 
   async function sendMessage(raw: string) {
     const text = raw.trim();
@@ -54,8 +89,8 @@ export default function PortalAssistantChat() {
         typeof data.reply === "string"
           ? data.reply
           : res.ok
-            ? "Done."
-            : "Assistant is temporarily unavailable. Please try again.";
+            ? t(uiLang, "Done.", "Listo.")
+            : t(uiLang, "Assistant is temporarily unavailable. Please try again.", "El asistente no esta disponible temporalmente. Intenta de nuevo.");
 
       setMessages((prev) => [
         ...prev,
@@ -71,7 +106,7 @@ export default function PortalAssistantChat() {
         {
           id: `a-${Date.now()}`,
           role: "assistant",
-          text: "Assistant is temporarily unavailable. Please try again.",
+          text: t(uiLang, "Assistant is temporarily unavailable. Please try again.", "El asistente no esta disponible temporalmente. Intenta de nuevo."),
         },
       ]);
     } finally {
@@ -84,15 +119,31 @@ export default function PortalAssistantChat() {
       <header>
         <h2 className="text-base sm:text-lg font-semibold text-slate-900">AI Assistant</h2>
         <p className="text-xs sm:text-sm text-slate-600 mt-1">
-          Ask about practice information or appointment tasks in plain language.
+          {t(
+            uiLang,
+            "Ask about practice information or appointment tasks in plain language. English and Spanish are supported.",
+            "Pregunta sobre informacion de la clinica o tareas de citas en lenguaje natural. Se admite espanol e ingles.",
+          )}
         </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button type="button" className="chip bg-white text-slate-700 ring-slate-200" onClick={() => setLargeText((v) => !v)}>
+            {largeText ? t(uiLang, "Normal text", "Texto normal") : t(uiLang, "Large text", "Texto grande")}
+          </button>
+          <button type="button" className="chip bg-white text-slate-700 ring-slate-200" onClick={() => setReadAloud((v) => !v)}>
+            {readAloud ? t(uiLang, "Voice on", "Voz activada") : t(uiLang, "Voice off", "Voz desactivada")}
+          </button>
+        </div>
       </header>
 
-      <div className="rounded-md ring-1 ring-slate-200 bg-slate-50 p-3 h-[420px] overflow-y-auto space-y-2">
+      <div
+        className={`rounded-md ring-1 ring-slate-200 bg-slate-50 p-3 h-[420px] overflow-y-auto space-y-2 ${largeText ? "text-base" : "text-sm"}`}
+        aria-live="polite"
+        aria-label={t(uiLang, "Assistant conversation", "Conversacion del asistente")}
+      >
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[90%] whitespace-pre-wrap rounded-md px-3 py-2 text-sm ${
+              className={`max-w-[90%] whitespace-pre-wrap rounded-md px-3 py-2 ${largeText ? "text-base" : "text-sm"} ${
                 m.role === "user"
                   ? "bg-brand-600 text-white"
                   : "bg-white text-slate-800 ring-1 ring-slate-200"
@@ -129,12 +180,13 @@ export default function PortalAssistantChat() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your question or request..."
+          placeholder={t(uiLang, "Type your question or request...", "Escribe tu pregunta o solicitud...")}
+          aria-label={t(uiLang, "Assistant message", "Mensaje para el asistente")}
           className="input flex-1"
           disabled={sending}
         />
         <button type="submit" className="btn-primary" disabled={sending || !input.trim()}>
-          Send
+          {t(uiLang, "Send", "Enviar")}
         </button>
       </form>
     </section>
