@@ -1,5 +1,5 @@
 [build]
-command = "npm run build"
+command = "npm run netlify:prepare-db && npm run build && npm run netlify:bundle-db"
 
 [functions]
 included_files = ["prisma/dev.db"]

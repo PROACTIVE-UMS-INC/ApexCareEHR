@@ -18,9 +18,10 @@ if (!fs.existsSync(sourceDbPath)) {
 }
 
 if (!fs.existsSync(functionRoot)) {
-  throw new Error(
-    "Netlify function bundle not found. Run `netlify build` before bundling the database.",
+  console.log(
+    "Netlify function bundle not found yet. Skipping DB copy in this phase.",
   );
+  process.exit(0);
 }
 
 fs.mkdirSync(bundledDbDir, { recursive: true });
