@@ -88,10 +88,14 @@ export type ModuleFeatureConfig = {
 export type ModuleIntegrationsConfig = {
   labcorpOutbound: boolean;
   availityEligibility: boolean;
+  pharmacyRouting: boolean;
   superbillAutomation: boolean;
   googleMeetTelehealth: boolean;
   claimScrubber: boolean;
   priorAuthTracking: boolean;
+  pharmacyDispensing: boolean;
+  posTerminal: boolean;
+  inventoryManagement: boolean;
 };
 
 export type ModulesConfig = {
@@ -235,10 +239,14 @@ const DEFAULTS: AdminConfig = {
     integrations: {
       labcorpOutbound: true,
       availityEligibility: true,
+      pharmacyRouting: true,
       superbillAutomation: true,
       googleMeetTelehealth: true,
       claimScrubber: true,
       priorAuthTracking: true,
+      pharmacyDispensing: true,
+      posTerminal: true,
+      inventoryManagement: true,
     },
   },
   roles: {

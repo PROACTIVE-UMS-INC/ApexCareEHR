@@ -30,6 +30,12 @@ if (!fs.existsSync(dbPath)) {
 }
 
 console.log("Preparing Netlify SQLite database...");
+// Regenerate the Prisma client against the current schema so the build
+// environment has the query engines for all configured binaryTargets
+// (e.g. debian-openssl-3.0.x). Cached node_modules may carry a client
+// generated before the schema's binaryTargets changed, which makes the
+// seed step fail with "could not locate the Query Engine".
+run("npx", ["prisma", "generate"]);
 run("npx", ["prisma", "db", "push", "--skip-generate"]);
 run("npm", ["run", "db:seed"]);
 console.log(`Netlify SQLite database is ready at ${dbPath}`);

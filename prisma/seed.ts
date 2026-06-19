@@ -11,12 +11,17 @@ async function main() {
 
   // Wipe everything first (dev only)
   await db.auditLog.deleteMany();
+  await db.posSaleLine.deleteMany();
+  await db.posSale.deleteMany();
+  await db.stockMovement.deleteMany();
+  await db.inventoryItem.deleteMany();
   await db.message.deleteMany();
   await db.document.deleteMany();
   await db.encounterCharge.deleteMany();
   await db.encounterDiagnosis.deleteMany();
   await db.encounterNote.deleteMany();
   await db.order.deleteMany();
+  await db.pharmacy.deleteMany();
   await db.encounter.deleteMany();
   await db.appointment.deleteMany();
   await db.immunization.deleteMany();
@@ -79,6 +84,18 @@ async function main() {
     // Primary Care
     db.serviceType.create({ data: { code: "PC-FOLLOW", name: "Primary Care Follow-up", category: "primary-care", durationMin: 30, description: "Established patient visit", defaultCpt: "99213" } }),
     db.serviceType.create({ data: { code: "PC-ACUTE", name: "Primary Care Acute Visit", category: "primary-care", durationMin: 30, description: "Acute concern", defaultCpt: "99214" } }),
+
+    // Add-on services (retail, pharmacy & wellness perks)
+    db.serviceType.create({ data: { code: "ADD-IMMUNIZE", name: "Immunization / Vaccine Administration", category: "add-on-services", durationMin: 15, description: "Flu, shingles, Tdap, travel and routine vaccines", defaultCpt: "90471" } }),
+    db.serviceType.create({ data: { code: "ADD-MTM", name: "Medication Therapy Management", category: "add-on-services", durationMin: 30, description: "Pharmacist-led medication review and reconciliation" } }),
+    db.serviceType.create({ data: { code: "ADD-POCT", name: "Point-of-Care Testing", category: "add-on-services", durationMin: 15, description: "Rapid strep, flu, COVID, A1c and glucose testing" } }),
+    db.serviceType.create({ data: { code: "ADD-INJECT", name: "Injection / Infusion Administration", category: "add-on-services", durationMin: 20, description: "B12, vitamin and therapeutic injections", defaultCpt: "96372" } }),
+    db.serviceType.create({ data: { code: "ADD-IV-DRIP", name: "IV Hydration & Wellness Drip", category: "add-on-services", durationMin: 45, description: "Hydration, immunity and recovery IV therapy" } }),
+    db.serviceType.create({ data: { code: "ADD-WEIGHT", name: "Medical Weight Management Program", category: "add-on-services", durationMin: 30, description: "GLP-1 program with coaching and monitoring" } }),
+    db.serviceType.create({ data: { code: "ADD-DME", name: "Durable Medical Equipment Fitting", category: "add-on-services", durationMin: 20, description: "Braces, boots, compression and mobility aids" } }),
+    db.serviceType.create({ data: { code: "ADD-DELIVERY", name: "Prescription Home Delivery", category: "add-on-services", durationMin: 5, description: "Same-day courier and mail delivery of prescriptions" } }),
+    db.serviceType.create({ data: { code: "ADD-COMPOUND", name: "Compounding Service", category: "add-on-services", durationMin: 30, description: "Custom compounded medications and packaging" } }),
+    db.serviceType.create({ data: { code: "ADD-MEMBERSHIP", name: "Care+ Membership Plan", category: "add-on-services", durationMin: 10, description: "Loyalty membership with discounts and auto-refill" } }),
   ]);
   console.log(`  ✓ ${services.length} service types`);
 
@@ -315,6 +332,112 @@ async function main() {
     { fromUserId: billing.id, toUserId: drRivera.id, subject: "Charges pending signature", body: "3 encounters from yesterday have draft charges awaiting signature." },
   ] });
   console.log(`  ✓ messages`);
+
+  // ---------------- Pharmacy directory ----------------
+  await db.pharmacy.createMany({ data: [
+    { name: "CVS Pharmacy #4821", network: "surescripts", ncpdpId: "0512381", npi: "1487654320", addressLine1: "1450 Brickell Ave", city: "Miami", state: "FL", postalCode: "33131", phone: "(305) 555-0112", fax: "(305) 555-0113", hours: "Mon-Sun 8a-10p", services: "drive-thru,delivery,immunizations", preferred: true },
+    { name: "Walgreens #6610", network: "surescripts", ncpdpId: "0661102", npi: "1992345678", addressLine1: "2301 SW 8th St", city: "Miami", state: "FL", postalCode: "33135", phone: "(305) 555-0144", fax: "(305) 555-0145", hours: "24 hours", services: "24h,drive-thru,delivery", preferred: true },
+    { name: "Publix Pharmacy at The Shops", network: "surescripts", ncpdpId: "0773219", npi: "1556677889", addressLine1: "5701 Sunset Dr", city: "South Miami", state: "FL", postalCode: "33143", phone: "(305) 555-0167", fax: "(305) 555-0168", hours: "Mon-Fri 9a-9p, Sat 9a-7p, Sun 11a-6p", services: "delivery,immunizations" },
+    { name: "Navarro Discount Pharmacy", network: "surescripts", ncpdpId: "0488120", npi: "1667788990", addressLine1: "3402 Coral Way", city: "Miami", state: "FL", postalCode: "33145", phone: "(305) 555-0181", fax: "(305) 555-0182", hours: "Mon-Sun 8a-9p", services: "bilingual,delivery" },
+    { name: "ApexCare In-House Dispensary", network: "internal", ncpdpId: "9000001", npi: "1009000001", addressLine1: "800 NW 57th Ave, Suite 200", city: "Miami", state: "FL", postalCode: "33126", phone: "(305) 555-0148", fax: "(305) 555-0149", hours: "Mon-Fri 8a-6p", services: "in-house,compounding,delivery", preferred: true },
+    { name: "Costco Pharmacy #338", network: "surescripts", ncpdpId: "0338210", npi: "1778899001", addressLine1: "9925 NW 77th Ave", city: "Hialeah Gardens", state: "FL", postalCode: "33016", phone: "(305) 555-0190", fax: "(305) 555-0191", hours: "Mon-Fri 10a-7p, Sat 9:30a-6p", services: "low-cost,bulk" },
+    { name: "Accredo Specialty Pharmacy", network: "surescripts", ncpdpId: "0245500", npi: "1889900112", addressLine1: "8285 Bryan Dairy Rd", city: "Largo", state: "FL", postalCode: "33777", phone: "(800) 555-0210", fax: "(800) 555-0211", hours: "Mon-Fri 8a-8p", services: "specialty,mail-order,cold-chain" },
+    { name: "Sedano's Pharmacy #19", network: "availity", ncpdpId: "0619019", npi: "1110002223", addressLine1: "1244 W 49th St", city: "Hialeah", state: "FL", postalCode: "33012", phone: "(305) 555-0222", fax: "(305) 555-0223", hours: "Mon-Sat 9a-8p", services: "bilingual,delivery" },
+  ] });
+  console.log(`  ✓ pharmacies`);
+
+  // ---------------- Inventory (dispensary, supplies, retail) ----------------
+  const inventorySeed = [
+    // In-house dispensary medications
+    { sku: "RX-AMOX-500", name: "Amoxicillin 500mg Capsule", category: "medication", form: "capsule", strength: "500mg", unit: "capsule", quantityOnHand: 480, reorderLevel: 150, unitCostCents: 12, retailPriceCents: 65, location: "dispensary", supplier: "McKesson", controlled: false },
+    { sku: "RX-LISINO-10", name: "Lisinopril 10mg Tablet", category: "medication", form: "tablet", strength: "10mg", unit: "tablet", quantityOnHand: 900, reorderLevel: 200, unitCostCents: 4, retailPriceCents: 35, location: "dispensary", supplier: "Cardinal Health" },
+    { sku: "RX-METF-500", name: "Metformin 500mg Tablet", category: "medication", form: "tablet", strength: "500mg", unit: "tablet", quantityOnHand: 1100, reorderLevel: 250, unitCostCents: 3, retailPriceCents: 30, location: "dispensary", supplier: "Cardinal Health" },
+    { sku: "RX-ATORV-20", name: "Atorvastatin 20mg Tablet", category: "medication", form: "tablet", strength: "20mg", unit: "tablet", quantityOnHand: 120, reorderLevel: 200, unitCostCents: 6, retailPriceCents: 45, location: "dispensary", supplier: "McKesson" },
+    { sku: "RX-PRED-20", name: "Prednisone 20mg Tablet", category: "medication", form: "tablet", strength: "20mg", unit: "tablet", quantityOnHand: 60, reorderLevel: 80, unitCostCents: 5, retailPriceCents: 40, location: "dispensary", supplier: "McKesson" },
+    { sku: "RX-B12-INJ", name: "Vitamin B12 Injection 1000mcg", category: "medication", form: "vial", strength: "1000mcg/mL", unit: "vial", quantityOnHand: 45, reorderLevel: 20, unitCostCents: 180, retailPriceCents: 2500, location: "dispensary", supplier: "Henry Schein" },
+
+    // Vaccines (cold-chain)
+    { sku: "VAX-FLU", name: "Influenza Vaccine (Quadrivalent)", category: "medication", form: "syringe", strength: "0.5mL", unit: "dose", quantityOnHand: 75, reorderLevel: 40, unitCostCents: 1600, retailPriceCents: 4000, location: "dispensary", supplier: "Sanofi", controlled: false },
+    { sku: "VAX-TDAP", name: "Tdap Vaccine", category: "medication", form: "syringe", strength: "0.5mL", unit: "dose", quantityOnHand: 18, reorderLevel: 25, unitCostCents: 4200, retailPriceCents: 8500, location: "dispensary", supplier: "GSK" },
+
+    // Aesthetic consumables
+    { sku: "AE-BOTOX-100", name: "Botox 100u Vial", category: "aesthetic", form: "vial", strength: "100u", unit: "vial", quantityOnHand: 14, reorderLevel: 8, unitCostCents: 52000, retailPriceCents: 0, location: "aesthetics-room", supplier: "Allergan" },
+    { sku: "AE-FILLER-1ML", name: "HA Dermal Filler 1mL Syringe", category: "aesthetic", form: "syringe", strength: "1mL", unit: "syringe", quantityOnHand: 22, reorderLevel: 10, unitCostCents: 28000, retailPriceCents: 0, location: "aesthetics-room", supplier: "Galderma" },
+    { sku: "AE-PRP-KIT", name: "PRP Preparation Kit", category: "aesthetic", form: "kit", unit: "kit", quantityOnHand: 9, reorderLevel: 12, unitCostCents: 4500, retailPriceCents: 0, location: "aesthetics-room", supplier: "Eclipse" },
+
+    // Clinical supplies
+    { sku: "SUP-GLOVE-M", name: "Nitrile Exam Gloves (Medium, box/200)", category: "supply", form: "box", unit: "box", quantityOnHand: 60, reorderLevel: 30, unitCostCents: 850, retailPriceCents: 0, location: "supply-room", supplier: "Medline" },
+    { sku: "SUP-GAUZE-4", name: "Sterile Gauze 4x4 (pack/100)", category: "supply", form: "pack", unit: "pack", quantityOnHand: 40, reorderLevel: 25, unitCostCents: 600, retailPriceCents: 0, location: "supply-room", supplier: "Medline" },
+    { sku: "SUP-FOAM-DRS", name: "Foam Wound Dressing 4x4", category: "supply", form: "each", unit: "each", quantityOnHand: 28, reorderLevel: 40, unitCostCents: 320, retailPriceCents: 0, location: "supply-room", supplier: "Smith+Nephew" },
+    { sku: "SUP-SYRINGE-3", name: "Syringe 3mL with Needle (box/100)", category: "supply", form: "box", unit: "box", quantityOnHand: 35, reorderLevel: 20, unitCostCents: 1200, retailPriceCents: 0, location: "supply-room", supplier: "BD" },
+
+    // Front-of-house retail / OTC (sellable at POS)
+    { sku: "OTC-IBU-200", name: "Ibuprofen 200mg (bottle/100)", category: "retail", form: "bottle", unit: "bottle", quantityOnHand: 48, reorderLevel: 20, unitCostCents: 380, retailPriceCents: 999, taxable: true, location: "front-retail", supplier: "Perrigo" },
+    { sku: "OTC-ACET-500", name: "Acetaminophen 500mg (bottle/100)", category: "retail", form: "bottle", unit: "bottle", quantityOnHand: 52, reorderLevel: 20, unitCostCents: 360, retailPriceCents: 949, taxable: true, location: "front-retail", supplier: "Perrigo" },
+    { sku: "OTC-VITD-2K", name: "Vitamin D3 2000 IU (bottle/120)", category: "retail", form: "bottle", unit: "bottle", quantityOnHand: 30, reorderLevel: 15, unitCostCents: 420, retailPriceCents: 1499, taxable: true, location: "front-retail", supplier: "Nature Made" },
+    { sku: "OTC-COMP-SOCK", name: "Compression Socks (20-30 mmHg)", category: "retail", form: "pair", unit: "pair", quantityOnHand: 24, reorderLevel: 12, unitCostCents: 900, retailPriceCents: 2999, taxable: true, location: "front-retail", supplier: "Sigvaris" },
+    { sku: "OTC-SUNSCREEN", name: "Medical-Grade Sunscreen SPF 46", category: "retail", form: "tube", unit: "tube", quantityOnHand: 19, reorderLevel: 10, unitCostCents: 1800, retailPriceCents: 3800, taxable: true, location: "front-retail", supplier: "EltaMD" },
+    { sku: "OTC-GLUC-METER", name: "Glucose Meter Starter Kit", category: "equipment", form: "kit", unit: "kit", quantityOnHand: 8, reorderLevel: 6, unitCostCents: 1500, retailPriceCents: 3499, taxable: true, location: "front-retail", supplier: "Contour" },
+    { sku: "OTC-BP-CUFF", name: "Home Blood Pressure Monitor", category: "equipment", form: "each", unit: "each", quantityOnHand: 11, reorderLevel: 6, unitCostCents: 2400, retailPriceCents: 5499, taxable: true, location: "front-retail", supplier: "Omron" },
+    { sku: "OTC-KNEE-BRACE", name: "Hinged Knee Brace (Universal)", category: "equipment", form: "each", unit: "each", quantityOnHand: 7, reorderLevel: 8, unitCostCents: 2200, retailPriceCents: 6500, taxable: true, location: "front-retail", supplier: "DonJoy" },
+  ];
+
+  const inventoryItems = await Promise.all(
+    inventorySeed.map((data) => db.inventoryItem.create({ data })),
+  );
+  const itemBySku = new Map(inventoryItems.map((i) => [i.sku, i]));
+
+  await db.stockMovement.createMany({
+    data: inventoryItems.map((item) => ({
+      itemId: item.id,
+      type: "receive",
+      quantity: item.quantityOnHand,
+      reason: "Opening stock count",
+      actor: "Avery Park",
+    })),
+  });
+  console.log(`  ✓ ${inventoryItems.length} inventory items`);
+
+  // ---------------- Sample POS sales ----------------
+  function lineFor(sku: string, qty: number) {
+    const item = itemBySku.get(sku)!;
+    return {
+      itemId: item.id,
+      kind: "product" as const,
+      sku: item.sku,
+      description: item.name,
+      qty,
+      unitPriceCents: item.retailPriceCents,
+      lineTotalCents: item.retailPriceCents * qty,
+    };
+  }
+  const saleDrafts = [
+    { number: "POS-1001", cashier: "Carla Lopez", patientName: "Eleanor Adams", paymentMethod: "card", lines: [lineFor("OTC-COMP-SOCK", 1), lineFor("OTC-VITD-2K", 1)] },
+    { number: "POS-1002", cashier: "Carla Lopez", patientName: "Walk-in", paymentMethod: "cash", lines: [lineFor("OTC-IBU-200", 2)] },
+    { number: "POS-1003", cashier: "Soo Kim", patientName: "Marcus Bell", paymentMethod: "hsa-fsa", lines: [lineFor("OTC-BP-CUFF", 1), lineFor("OTC-VITD-2K", 1)] },
+  ];
+  const TAX_RATE = 0.07;
+  for (const draft of saleDrafts) {
+    const subtotalCents = draft.lines.reduce((sum, l) => sum + l.lineTotalCents, 0);
+    const taxCents = Math.round(subtotalCents * TAX_RATE);
+    const totalCents = subtotalCents + taxCents;
+    await db.posSale.create({
+      data: {
+        number: draft.number,
+        status: "paid",
+        cashier: draft.cashier,
+        patientName: draft.patientName,
+        paymentMethod: draft.paymentMethod,
+        subtotalCents,
+        taxCents,
+        totalCents,
+        amountTenderedCents: totalCents,
+        changeCents: 0,
+        lines: { create: draft.lines },
+      },
+    });
+  }
+  console.log(`  ✓ ${saleDrafts.length} point-of-sale transactions`);
 
   console.log("\nDone. Login: mariuska.aristica@apexcare.health / apex123\n");
 }

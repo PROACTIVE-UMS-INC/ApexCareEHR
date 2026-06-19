@@ -9,17 +9,6 @@ type ChatMessage = {
   text: string;
 };
 
-type SpeechRecognitionCtor = new () => {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
 const STARTER_PROMPTS = [
   "What is the practice support phone number?",
   "Cual es el telefono de soporte de la clinica?",
@@ -31,7 +20,7 @@ const STARTER_PROMPTS = [
 
 function detectLang(input: string) {
   const text = input.toLowerCase();
-  if (/[\u00c0-\u017f]/.test(text)) return "es" as const;
+  if (/[À-ſ]/.test(text)) return "es" as const;
   if (/(hola|buenos|buenas|gracias|cita|agendar|reagendar|cancelar|portal|ayuda|clinica|correo|telefono)/.test(text)) return "es" as const;
   return "en" as const;
 }
@@ -49,19 +38,16 @@ export default function FloatingAssistantWidget() {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [largeText, setLargeText] = useState(false);
-  const [readAloud, setReadAloud] = useState(true);
-  const [listening, setListening] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
   const [input, setInput] = useState("");
-  const recognitionRef = useRef<null | { stop: () => void }>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
       role: "assistant",
       text: t(
         uiLang,
-        "Hi. I am your ApexCare assistant. You can chat with me in English or Spanish. I can also read replies out loud.",
-        "Hola. Soy tu asistente ApexCare. Puedes conversar conmigo en espanol o ingles. Tambien puedo leer respuestas en voz alta.",
+        "Hi. I am your ApexCare assistant. You can chat with me in English or Spanish, and I will help with practice info and appointments.",
+        "Hola. Soy tu asistente ApexCare. Puedes conversar conmigo en espanol o ingles, y te ayudo con informacion de la clinica y tus citas.",
       ),
     },
   ]);
@@ -70,32 +56,10 @@ export default function FloatingAssistantWidget() {
   const endpoint = useMemo(() => (isPortalPath ? "/api/portal/assistant" : "/api/assistant"), [isPortalPath]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const w = window as Window & {
-      SpeechRecognition?: SpeechRecognitionCtor;
-      webkitSpeechRecognition?: SpeechRecognitionCtor;
-    };
-    setSpeechSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!readAloud || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
-    if (!lastAssistant) return;
-
-    const utterance = new SpeechSynthesisUtterance(lastAssistant.text);
-    utterance.lang = detectLang(lastAssistant.text) === "es" ? "es-US" : "en-US";
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  }, [messages, readAloud]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, sending]);
 
   async function sendMessage(raw: string) {
     const text = raw.trim();
@@ -149,62 +113,25 @@ export default function FloatingAssistantWidget() {
     }
   }
 
-  function toggleDictation() {
-    if (!speechSupported || typeof window === "undefined") return;
-
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
-    }
-
-    const w = window as Window & {
-      SpeechRecognition?: SpeechRecognitionCtor;
-      webkitSpeechRecognition?: SpeechRecognitionCtor;
-    };
-    const RecognitionCtor = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!RecognitionCtor) return;
-
-    const recognition = new RecognitionCtor();
-    recognition.lang = uiLang === "es" ? "es-US" : "en-US";
-    recognition.interimResults = true;
-    recognition.continuous = false;
-
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((r) => r[0]?.transcript || "")
-        .join(" ")
-        .trim();
-      setInput(transcript);
-    };
-    recognition.onerror = () => {
-      setListening(false);
-    };
-    recognition.onend = () => {
-      setListening(false);
-      recognitionRef.current = null;
-    };
-
-    recognitionRef.current = recognition;
-    setListening(true);
-    recognition.start();
-  }
-
   return (
     <div className="fixed bottom-4 right-4 z-[60]">
       {open && (
-        <section className="mb-3 w-[calc(100vw-2rem)] sm:w-[360px] max-h-[70vh] rounded-xl bg-white shadow-xl ring-1 ring-slate-200 flex flex-col overflow-hidden">
-          <header className="px-3 py-2.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900">AI Assistant</h2>
-              <p className="text-[11px] text-slate-500">
-                {t(uiLang, "Quick help anywhere in ApexCare", "Ayuda rapida en cualquier parte de ApexCare")}
-              </p>
+        <section className="mb-3 w-[calc(100vw-2rem)] sm:w-[368px] max-h-[72vh] rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 flex flex-col overflow-hidden animate-pop-in">
+          <header className="px-3.5 py-3 border-b border-slate-200 bg-[linear-gradient(135deg,var(--teal-700),var(--navy-800))] text-white flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="h-8 w-8 rounded-full bg-white/15 ring-1 ring-white/25 grid place-items-center text-sm font-bold">AI</span>
+              <div>
+                <h2 className="text-sm font-semibold leading-tight">ApexCare Assistant</h2>
+                <p className="text-[11px] text-teal-100/90 flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse-soft" />
+                  {t(uiLang, "Online · EN / ES", "En linea · EN / ES")}
+                </p>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="text-slate-500 hover:text-slate-700 text-sm font-medium"
+              className="text-white/80 hover:text-white text-sm font-medium"
               aria-label="Close assistant"
             >
               {t(uiLang, "Close", "Cerrar")}
@@ -212,31 +139,35 @@ export default function FloatingAssistantWidget() {
           </header>
 
           <div className="px-2.5 pt-2 flex flex-wrap gap-1.5">
-            <button type="button" className="chip bg-white text-slate-700 ring-slate-200" onClick={() => setLargeText((v) => !v)}>
+            <button type="button" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50" onClick={() => setLargeText((v) => !v)}>
               {largeText ? t(uiLang, "Normal text", "Texto normal") : t(uiLang, "Large text", "Texto grande")}
-            </button>
-            <button type="button" className="chip bg-white text-slate-700 ring-slate-200" onClick={() => setReadAloud((v) => !v)}>
-              {readAloud ? t(uiLang, "Voice on", "Voz activada") : t(uiLang, "Voice off", "Voz desactivada")}
             </button>
           </div>
 
           <div
-            className={`p-2.5 bg-slate-50 h-[250px] overflow-y-auto space-y-2 ${largeText ? "text-sm" : "text-xs"}`}
+            ref={scrollRef}
+            className={`p-2.5 bg-slate-50 h-[250px] overflow-y-auto space-y-2 scroll-smooth ${largeText ? "text-sm" : "text-xs"}`}
             aria-live="polite"
             aria-label={t(uiLang, "Assistant conversation", "Conversacion del asistente")}
           >
             {messages.map((m) => (
-              <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div key={m.id} className={`flex animate-fade-in-up ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[92%] whitespace-pre-wrap rounded-md px-2.5 py-2 ${largeText ? "text-sm" : "text-xs"} ${
-                    m.role === "user" ? "bg-brand-600 text-white" : "bg-white text-slate-800 ring-1 ring-slate-200"
+                  className={`max-w-[92%] whitespace-pre-wrap rounded-2xl px-3 py-2 shadow-sm ${largeText ? "text-sm" : "text-xs"} ${
+                    m.role === "user" ? "bg-brand-600 text-white rounded-br-sm" : "bg-white text-slate-800 ring-1 ring-slate-200 rounded-bl-sm"
                   }`}
                 >
                   {m.text}
                 </div>
               </div>
             ))}
-            {sending && <div className="text-[11px] text-slate-500">Assistant is thinking...</div>}
+            {sending && (
+              <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "120ms" }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "240ms" }} />
+              </div>
+            )}
           </div>
 
           <div className="px-2.5 pt-2 flex flex-wrap gap-1.5">
@@ -246,7 +177,7 @@ export default function FloatingAssistantWidget() {
                 type="button"
                 onClick={() => sendMessage(prompt)}
                 disabled={sending}
-                className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50 text-[10px]"
+                className="chip bg-white text-slate-700 ring-slate-200 hover:bg-brand-50 hover:ring-brand-200 hover:text-brand-800 transition text-[10px]"
               >
                 {prompt}
               </button>
@@ -267,42 +198,24 @@ export default function FloatingAssistantWidget() {
               className="input flex-1 text-xs"
               disabled={sending}
             />
-            <button
-              type="button"
-              onClick={toggleDictation}
-              disabled={!speechSupported || sending}
-              className="btn-secondary px-2.5 py-1.5 text-xs"
-              aria-label={
-                listening
-                  ? t(uiLang, "Stop dictation", "Detener dictado")
-                  : t(uiLang, "Start dictation", "Iniciar dictado")
-              }
-            >
-              {listening ? t(uiLang, "Listening...", "Escuchando...") : t(uiLang, "Mic", "Micro")}
-            </button>
             <button type="submit" className="btn-primary px-3 py-1.5 text-xs" disabled={sending || !input.trim()}>
-                {t(uiLang, "Send", "Enviar")}
+              {t(uiLang, "Send", "Enviar")}
             </button>
           </form>
-          {!speechSupported && (
-            <p className="px-2.5 pb-2 text-[11px] text-slate-500">
-              {t(
-                uiLang,
-                "Voice dictation is not supported in this browser.",
-                "El dictado por voz no es compatible con este navegador.",
-              )}
-            </p>
-          )}
         </section>
       )}
 
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="h-12 w-12 rounded-full shadow-lg text-white flex items-center justify-center bg-[linear-gradient(135deg,var(--teal-600),var(--teal-700))] hover:brightness-110 transition"
+        className="h-[52px] w-[52px] rounded-full shadow-lg text-white flex items-center justify-center bg-[linear-gradient(135deg,var(--teal-600),var(--teal-700))] hover:brightness-110 hover:scale-105 active:scale-95 transition-transform duration-200"
         aria-label={open ? t(uiLang, "Close assistant", "Cerrar asistente") : t(uiLang, "Open assistant", "Abrir asistente")}
       >
-        {open ? "X" : "AI"}
+        {open ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        ) : (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" /></svg>
+        )}
       </button>
     </div>
   );

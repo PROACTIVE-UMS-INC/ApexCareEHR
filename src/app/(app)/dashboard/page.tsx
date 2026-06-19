@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import Shell from "@/components/Shell";
 import { fmtTime, fmtDateTime, colorForApptStatus, colorForCategory } from "@/lib/utils";
 import JellyBeans from "@/components/JellyBeans";
+import LiveOpsPanel from "@/components/LiveOpsPanel";
 
 export default async function DashboardPage() {
   const user = await requireSession();
@@ -61,10 +62,29 @@ export default async function DashboardPage() {
   }
 
   const completed = todays.filter(a => a.status === "completed").length;
+  const checkedIn = todays.filter(a => a.status === "checked-in").length;
+  const inRoom = todays.filter(a => a.status === "in-room").length;
+  const noShow = todays.filter(a => a.status === "no-show").length;
+  const pendingRx = openOrders.filter(o => o.type === "rx").length;
+  const pendingLabs = openOrders.filter(o => o.type === "lab").length;
+  const initialMetrics = {
+    apptsToday: todays.length,
+    checkedIn,
+    inRoom,
+    completed,
+    noShow,
+    waiting: checkedIn + inRoom,
+    throughputPct: todays.length > 0 ? Math.round((completed / todays.length) * 100) : 0,
+    openEncounters: openEncounters.length,
+    pendingRx,
+    pendingLabs,
+    sentRxToday: 0,
+    unreadMessages,
+  };
 
   return (
     <Shell user={user} jellyBeans={<JellyBeans />}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 stagger">
         {dataUnavailable && (
           <div className="lg:col-span-3 card card-pad border-amber-200 bg-amber-50 text-amber-900">
             Some dashboard metrics are temporarily unavailable.
@@ -85,8 +105,13 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+        {/* live operations reporting */}
+        <div className="lg:col-span-3">
+          <LiveOpsPanel initialMetrics={initialMetrics} />
+        </div>
+
         {/* today's schedule */}
-        <section className="card lg:col-span-2">
+        <section className="card card-interactive lg:col-span-2 border-l-4 border-l-brand-500">
           <header className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
             <div className="font-semibold text-slate-900">Today's Schedule</div>
             <Link href="/schedule" prefetch={false} className="text-xs font-semibold text-brand-700 hover:underline">Open schedule →</Link>
@@ -113,7 +138,7 @@ export default async function DashboardPage() {
         </section>
 
         {/* open notes */}
-        <section className="card">
+        <section className="card card-interactive border-l-4 border-l-amber-500">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Open Encounter Notes</header>
           {openEncounters.length === 0 ? (
             <div className="p-6 text-sm text-slate-500">No open notes.</div>
@@ -132,7 +157,7 @@ export default async function DashboardPage() {
         </section>
 
         {/* recent patients */}
-        <section className="card">
+        <section className="card card-interactive border-l-4 border-l-emerald-500">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Recent Patients</header>
           <ul className="divide-y divide-slate-100">
             {recentPatients.map(p => (
@@ -147,7 +172,7 @@ export default async function DashboardPage() {
         </section>
 
         {/* pending orders */}
-        <section className="card lg:col-span-2">
+        <section className="card card-interactive lg:col-span-2 border-l-4 border-l-violet-500">
           <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Pending Orders</header>
           {openOrders.length === 0 ? (
             <div className="p-6 text-sm text-slate-500">No pending orders.</div>

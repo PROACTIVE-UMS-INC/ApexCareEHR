@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import PharmacyPicker, { type Pharmacy } from "@/components/orders/PharmacyPicker";
 
 const RX_PICKS = [
   "Lisinopril", "Atorvastatin", "Metformin", "Amlodipine", "Levothyroxine",
@@ -20,6 +21,7 @@ export default function NewOrderForm({ patientId, initialType }: { patientId: st
   const [instructions, setInstructions] = useState("");
   const [priority, setPriority] = useState("routine");
   const [diag, setDiag] = useState("");
+  const [pharmacy, setPharmacy] = useState<Pharmacy | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -31,6 +33,7 @@ export default function NewOrderForm({ patientId, initialType }: { patientId: st
       body.rxSig = sig;
       body.rxQty = qty;
       body.rxRefills = Number(refills) || 0;
+      if (pharmacy) body.pharmacyId = pharmacy.id;
     }
     const res = await fetch(`/api/patients/${patientId}/orders`, {
       method: "POST", headers: { "content-type": "application/json" },
@@ -76,6 +79,21 @@ export default function NewOrderForm({ patientId, initialType }: { patientId: st
         </div>
       )}
 
+      {type === "rx" && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50/60 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="label mb-0">Destination pharmacy (e-prescribe)</span>
+            <span className="chip bg-brand-100 text-brand-800 ring-brand-200">Surescripts / Availity</span>
+          </div>
+          <PharmacyPicker selected={pharmacy} onSelect={setPharmacy} compact />
+          <p className="text-[11px] text-slate-600">
+            {pharmacy
+              ? "This prescription will be sent electronically to the selected pharmacy on submit."
+              : "Optional. Leave empty to save as a pending Rx and route later from the Orders workspace."}
+          </p>
+        </div>
+      )}
+
       {type !== "rx" && (
         <Input label="Instructions" value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Fasting, …" />
       )}
@@ -100,7 +118,7 @@ export default function NewOrderForm({ patientId, initialType }: { patientId: st
         <Input label="Linked Dx (ICD-10)" value={diag} onChange={e => setDiag(e.target.value)} placeholder="M54.5" />
       </div>
 
-      <button disabled={loading || !name} className="btn-primary">{loading ? "Submitting…" : "Submit Order"}</button>
+      <button disabled={loading || !name} className="btn-primary">{loading ? "Submitting…" : type === "rx" && pharmacy ? "Submit & Send to Pharmacy" : "Submit Order"}</button>
     </form>
   );
 }

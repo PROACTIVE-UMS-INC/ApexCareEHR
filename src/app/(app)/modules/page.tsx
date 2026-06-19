@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { colorForCategory, fmtDateTime } from "@/lib/utils";
-import { CLINICAL_MODULES, MODULE_SERVICE_FALLBACKS } from "@/lib/modules";
+import { CLINICAL_MODULES, MODULE_SERVICE_FALLBACKS, OPERATIONAL_MODULES, ADDON_SERVICES } from "@/lib/modules";
 import { canAccessModule, canAccessModuleWorkflow, readAdminConfig } from "@/lib/admin/store";
 
 export default async function ModulesPage() {
@@ -67,7 +67,54 @@ export default async function ModulesPage() {
             <Link href="#module-directory" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Module Directory</Link>
             {moduleControls.showServiceOverview && <Link href="#service-overview" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Service Overview</Link>}
             {moduleControls.showActivityStream && <Link href="#activity-stream" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Activity Stream</Link>}
+            <Link href="#operational-modules" className="chip bg-white text-slate-700 ring-slate-200 hover:bg-slate-50">Operational Modules</Link>
           </div>
+        </section>
+
+        <section id="operational-modules" className="space-y-3 scroll-mt-32">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {OPERATIONAL_MODULES.map((mod) => {
+              const active = adminConfig.modules.integrations[mod.integrationFlag];
+              return (
+                <div key={mod.key} className="card overflow-hidden">
+                  <header className={`px-4 py-4 border-b border-slate-200 ${mod.accent} bg-opacity-40`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Operational</div>
+                        <h3 className="text-lg font-bold text-slate-900">
+                          <Link href={mod.href} className="hover:underline">{mod.title}</Link>
+                        </h3>
+                      </div>
+                      <span className={`chip ${active ? "bg-emerald-100 text-emerald-800 ring-emerald-200" : "bg-slate-100 text-slate-600 ring-slate-200"}`}>{active ? "active" : "paused"}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-600">{mod.tagline}</p>
+                  </header>
+                  <div className="p-4 space-y-3">
+                    <p className="text-sm text-slate-600">{mod.description}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {mod.highlights.map((h) => <span key={h} className="chip bg-slate-100 text-slate-700 ring-slate-200">{h}</span>)}
+                    </div>
+                    <Link href={mod.href} className={`chip ${mod.accent} font-semibold hover:opacity-90`}>Open {mod.title}</Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <section className="card overflow-hidden">
+            <header className="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Add-on services</header>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {ADDON_SERVICES.map((s) => (
+                <div key={s.code} className="rounded-lg ring-1 ring-slate-200 p-3 bg-white">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium text-slate-900">{s.name}</div>
+                    <span className="chip bg-slate-100 text-slate-600 ring-slate-200">{s.category}</span>
+                  </div>
+                  <div className="text-xs text-slate-500 mt-0.5">{s.blurb}</div>
+                </div>
+              ))}
+            </div>
+          </section>
         </section>
 
         {moduleControls.showKpiCards && (
