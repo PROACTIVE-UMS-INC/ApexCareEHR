@@ -13,7 +13,12 @@ function run(command, args, env = {}) {
     shell: true,
     env: {
       ...process.env,
-      DATABASE_URL: "file:./prisma/dev.db",
+      // Prisma resolves a relative SQLite URL against the schema.prisma
+      // directory (prisma/), NOT the project root. "file:./dev.db" therefore
+      // lands at prisma/dev.db — the exact file netlify:bundle-db ships and the
+      // runtime reads. Using "file:./prisma/dev.db" here would resolve to the
+      // nested prisma/prisma/dev.db, leaving the shipped database empty.
+      DATABASE_URL: "file:./dev.db",
       ...env,
     },
   });
