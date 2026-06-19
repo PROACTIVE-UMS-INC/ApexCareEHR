@@ -4,10 +4,13 @@ import Shell from "@/components/Shell";
 import JellyBeans from "@/components/JellyBeans";
 import { readAdminConfig } from "@/lib/admin/store";
 import { CLINICAL_MODULES } from "@/lib/modules";
+import { readIntegrationsForClient } from "@/lib/integrations/store";
+import { INTEGRATION_CATALOG } from "@/lib/integrations/catalog";
 
 export default async function Settings() {
   const user = await requireSession();
   const adminConfig = await readAdminConfig();
+  const integrations = await readIntegrationsForClient();
   let staff: Array<{
     id: string;
     firstName: string;
@@ -136,6 +139,49 @@ export default async function Settings() {
           </div>
         </section>
       </div>
+
+      <div className="mt-4">
+        <section className="card card-pad space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold text-slate-900">External Integrations and Automation</h2>
+            <span className="text-xs text-slate-500">Configure in Admin · Operational Settings</span>
+          </div>
+          <p className="text-xs text-slate-500">
+            Vendor selection, credentials, and connection status for third-party services. Secrets are never displayed here.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {INTEGRATION_CATALOG.flatMap((cap) =>
+              cap.providers.map((provider) => {
+                const ps = integrations.providers[provider.key];
+                const enabled = ps?.enabled;
+                const status = ps?.validation.status ?? "untested";
+                const enabledSubs = (provider.subServices ?? []).filter((s) => ps?.subServices?.[s.key]);
+                return (
+                  <div
+                    key={provider.key}
+                    className={`rounded-md ring-1 p-3 ${enabled ? "bg-white ring-slate-200" : "bg-slate-50 ring-slate-200 opacity-70"}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">{provider.name}</div>
+                        <div className="text-[11px] uppercase tracking-wider text-slate-400">{cap.title}</div>
+                      </div>
+                      <ProviderStatusChip enabled={Boolean(enabled)} status={status} oauth={Boolean(ps?.oauthConnected)} />
+                    </div>
+                    {enabled && enabledSubs.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {enabledSubs.map((s) => (
+                          <span key={s.key} className="chip bg-brand-50 text-brand-800 ring-brand-200">{s.label}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }),
+            )}
+          </div>
+        </section>
+      </div>
     </Shell>
   );
 }
@@ -156,4 +202,17 @@ function IntegrationBadge({ label, enabled }: { label: string; enabled: boolean 
       <div className="text-xs mt-1">{enabled ? "Enabled" : "Disabled"}</div>
     </div>
   );
+}
+
+function ProviderStatusChip({ enabled, status, oauth }: { enabled: boolean; status: "untested" | "success" | "error"; oauth: boolean }) {
+  if (!enabled) {
+    return <span className="chip bg-slate-100 text-slate-600 ring-slate-200">Not configured</span>;
+  }
+  if (status === "success") {
+    return <span className="chip bg-emerald-100 text-emerald-800 ring-emerald-200">Verified</span>;
+  }
+  if (status === "error") {
+    return <span className="chip bg-rose-100 text-rose-800 ring-rose-200">Attention</span>;
+  }
+  return <span className="chip bg-amber-100 text-amber-800 ring-amber-200">{oauth ? "Connected" : "Untested"}</span>;
 }

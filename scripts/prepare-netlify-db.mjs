@@ -13,7 +13,12 @@ function run(command, args, env = {}) {
     shell: true,
     env: {
       ...process.env,
-      DATABASE_URL: "file:./prisma/dev.db",
+      // Prisma resolves a relative SQLite URL against the schema.prisma
+      // directory (prisma/), NOT the project root. "file:./dev.db" therefore
+      // lands at prisma/dev.db — the exact file netlify:bundle-db ships and the
+      // runtime reads. Using "file:./prisma/dev.db" here would resolve to the
+      // nested prisma/prisma/dev.db, leaving the shipped database empty.
+      DATABASE_URL: "file:./dev.db",
       ...env,
     },
   });
@@ -30,6 +35,12 @@ if (!fs.existsSync(dbPath)) {
 }
 
 console.log("Preparing Netlify SQLite database...");
+// Regenerate the Prisma client against the current schema so the build
+// environment has the query engines for all configured binaryTargets
+// (e.g. debian-openssl-3.0.x). Cached node_modules may carry a client
+// generated before the schema's binaryTargets changed, which makes the
+// seed step fail with "could not locate the Query Engine".
+run("npx", ["prisma", "generate"]);
 run("npx", ["prisma", "db", "push", "--skip-generate"]);
 run("npm", ["run", "db:seed"]);
 console.log(`Netlify SQLite database is ready at ${dbPath}`);

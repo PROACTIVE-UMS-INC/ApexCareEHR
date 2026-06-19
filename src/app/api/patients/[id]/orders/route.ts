@@ -18,6 +18,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const routingTag = b.type === "lab" ? "Labcorp routing: outbound" : "";
   const normalizedInstructions = [b.instructions, routingTag].filter(Boolean).join(" | ");
 
+  // Resolve destination pharmacy for Rx orders sent at creation time.
+  let pharmacy: { id: string; name: string; network: string } | null = null;
+  if (b.type === "rx" && typeof b.pharmacyId === "string" && b.pharmacyId) {
+    try {
+      pharmacy = await db.pharmacy.findUnique({
+        where: { id: b.pharmacyId },
+        select: { id: true, name: true, network: true },
+      });
+    } catch {
+      pharmacy = null;
+    }
+  }
+
   let created;
   try {
     created = await db.order.create({
@@ -29,12 +42,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         itemCode: b.itemCode || null,
         instructions: normalizedInstructions || null,
         priority: b.priority || "routine",
-        status: b.type === "lab" ? "sent" : "pending",
+        status: b.type === "lab" ? "sent" : pharmacy ? "sent" : "pending",
         rxStrength: b.rxStrength || null,
         rxForm: b.rxForm || null,
         rxSig: b.rxSig || null,
         rxQty: b.rxQty || null,
         rxRefills: typeof b.rxRefills === "number" ? b.rxRefills : null,
+        pharmacyId: pharmacy?.id || null,
+        pharmacyName: pharmacy?.name || null,
+        routingNetwork: pharmacy?.network || null,
+        routedAt: pharmacy ? new Date() : null,
         diagnosisCode: b.diagnosisCode || null,
         encounterId: b.encounterId || null,
       },
@@ -59,5 +76,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       // Order is already created; keep flow non-blocking if medication mirror fails.
     }
   }
-  return NextResponse.json({ ok: true, order: created, destination: b.type === "lab" ? "Labcorp" : null });
+  return NextResponse.json({ ok: true, order: created, destination: b.type === "lab" ? "Labcorp" : pharmacy?.name || null });
 }

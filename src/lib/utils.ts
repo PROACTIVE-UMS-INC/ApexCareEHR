@@ -52,6 +52,12 @@ export function colorForCategory(cat: string): string {
     case "aesthetic-medicine": return "bg-fuchsia-100 text-fuchsia-800 ring-fuchsia-200";
     case "other-services": return "bg-sky-100 text-sky-800 ring-sky-200";
     case "primary-care": return "bg-brand-100 text-brand-800 ring-brand-200";
+    case "add-on-services": return "bg-indigo-100 text-indigo-800 ring-indigo-200";
+    case "medication": return "bg-teal-100 text-teal-800 ring-teal-200";
+    case "retail": return "bg-indigo-100 text-indigo-800 ring-indigo-200";
+    case "supply": return "bg-slate-100 text-slate-700 ring-slate-200";
+    case "aesthetic": return "bg-fuchsia-100 text-fuchsia-800 ring-fuchsia-200";
+    case "equipment": return "bg-cyan-100 text-cyan-800 ring-cyan-200";
     default: return "bg-slate-100 text-slate-700 ring-slate-200";
   }
 }

@@ -53,6 +53,100 @@ h1, h2, h3, h4, h5, h6 {
   display: none;
 }
 
+/* ----------------------------------------------------------- */
+/* Motion & live-reporting animations                          */
+/* ----------------------------------------------------------- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes popIn {
+  0%   { opacity: 0; transform: translateY(12px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+@keyframes shimmer {
+  0%   { background-position: -120% 0; }
+  100% { background-position: 220% 0; }
+}
+@keyframes growBar {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes countPop {
+  0%   { transform: scale(0.85); opacity: 0.5; }
+  60%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.animate-fade-in-up { animation: fadeInUp 0.4s ease-out both; }
+.animate-pop-in { animation: popIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-pulse-soft { animation: pulseSoft 1.8s ease-in-out infinite; }
+.animate-count-pop { animation: countPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Staggered entrance for grids/lists */
+.stagger > * { animation: fadeInUp 0.45s ease-out both; }
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.07s; }
+.stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger > *:nth-child(4) { animation-delay: 0.17s; }
+.stagger > *:nth-child(5) { animation-delay: 0.22s; }
+.stagger > *:nth-child(6) { animation-delay: 0.27s; }
+.stagger > *:nth-child(7) { animation-delay: 0.32s; }
+.stagger > *:nth-child(8) { animation-delay: 0.37s; }
+
+/* Live status dot */
+.live-dot {
+  position: relative;
+  display: inline-block;
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 9999px;
+  background: #10b981;
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: #10b981;
+  animation: pulseSoft 1.6s ease-in-out infinite;
+}
+
+/* Shimmer skeleton for loading live data */
+.shimmer {
+  background: linear-gradient(90deg, rgba(148,163,184,0.10) 25%, rgba(148,163,184,0.28) 37%, rgba(148,163,184,0.10) 63%);
+  background-size: 220% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* Animated meter bar fill */
+.meter-fill {
+  transform-origin: left center;
+  animation: growBar 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Card lift on hover for interactive sections */
+.card-interactive { transition: box-shadow 0.2s ease, transform 0.2s ease; }
+.card-interactive:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -12px rgba(15, 30, 53, 0.25); }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-pop-in,
+  .animate-pulse-soft,
+  .animate-count-pop,
+  .stagger > *,
+  .live-dot::after,
+  .shimmer,
+  .meter-fill {
+    animation: none !important;
+  }
+  .card-interactive:hover { transform: none; }
+}
+
 /* Jelly Bean buttons (eCW-style action row) */
 .jb {
   @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset shadow-chip transition;

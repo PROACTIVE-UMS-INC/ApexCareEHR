@@ -44,8 +44,6 @@ export default function Shell({
     { label: "Patients", href: "/patients", icon: <Icon.Users /> },
     { label: "Encounters", href: "/encounters", icon: <Icon.Clipboard /> },
     { label: "Orders", href: "/orders", icon: <Icon.Beaker /> },
-    { label: "Billing", href: "/billing", icon: <Icon.Dollar /> },
-    { label: "Messages", href: "/messages", icon: <Icon.Mail /> },
     {
       label: "Modules",
       href: "/modules",
@@ -55,11 +53,17 @@ export default function Shell({
         ...CLINICAL_MODULES.map((module) => ({ label: module.sidebarLabel, href: `/modules/${module.slug}` })),
       ],
     },
+    { label: "Pharmacy", href: "/pharmacy", icon: <Icon.Pill /> },
+    { label: "Point of Sale", href: "/pos", icon: <Icon.Register /> },
+    { label: "Inventory", href: "/inventory", icon: <Icon.Box /> },
+    { label: "Billing", href: "/billing", icon: <Icon.Dollar /> },
+    { label: "Messages", href: "/messages", icon: <Icon.Mail /> },
     { label: "Services", href: "/services", icon: <Icon.Sparkle /> },
     { label: "Settings", href: "/settings", icon: <Icon.Cog /> },
   ];
   if (user.role === "admin") {
-    NAV.splice(9, 0, { label: "Admin", href: "/admin", icon: <Icon.Shield /> });
+    const settingsIndex = NAV.findIndex((item) => item.href === "/settings");
+    NAV.splice(settingsIndex, 0, { label: "Admin", href: "/admin", icon: <Icon.Shield /> });
   }
 
   const isItemActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
@@ -68,6 +72,10 @@ export default function Shell({
     {
       title: "Clinical",
       items: NAV.filter((item) => ["/dashboard", "/schedule", "/patients", "/encounters", "/orders", "/modules"].includes(item.href)),
+    },
+    {
+      title: "Pharmacy & Retail",
+      items: NAV.filter((item) => ["/pharmacy", "/pos", "/inventory"].includes(item.href)),
     },
     {
       title: "Operations",
@@ -85,8 +93,9 @@ export default function Shell({
   const quickLinks = [
     { label: "Today", href: "/dashboard" },
     { label: "Schedule", href: "/schedule" },
-    { label: "Patients", href: "/patients" },
-    { label: "Modules", href: "/modules" },
+    { label: "Pharmacy", href: "/pharmacy" },
+    { label: "Checkout", href: "/pos" },
+    { label: "Inventory", href: "/inventory" },
     { label: "Labs", href: "/orders?type=lab" },
   ];
 
@@ -296,7 +305,7 @@ export default function Shell({
               <h1 className="text-lg sm:text-xl font-bold text-slate-900">{pageTitle}</h1>
             </div>
           )}
-          <div className="p-3 sm:p-6 sm:pt-3">{children}</div>
+          <div className="p-3 sm:p-6 sm:pt-3 animate-fade-in-up">{children}</div>
         </main>
       </div>
     </div>
@@ -312,6 +321,9 @@ const Icon = {
   Dollar: () => svgPath("M12 3v18M17 7H9.5a2.5 2.5 0 000 5h5a2.5 2.5 0 010 5H7"),
   Mail: () => svgPath("M3 7l9 6 9-6M3 7v10h18V7M3 7l9-4 9 4"),
   Stethoscope: () => svgPath("M6 3v6a6 6 0 0012 0V3M6 9l-2 2a4 4 0 000 6 4 4 0 006 0l2-2M18 9l2 2a4 4 0 010 6 4 4 0 01-6 0l-2-2M12 15v6"),
+  Pill: () => svgPath("M10.5 13.5l3-3M8 16a4 4 0 010-6l3-3a4 4 0 016 6l-3 3a4 4 0 01-6 0z"),
+  Register: () => svgPath("M4 8h16M4 8l1-3h14l1 3M4 8v11h16V8M9 12h6M8 19v2M16 19v2"),
+  Box: () => svgPath("M3 7l9-4 9 4v10l-9 4-9-4V7zM3 7l9 4M21 7l-9 4M12 11v10"),
   Sparkle: () => svgPath("M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5zM18 15l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"),
   Cog: () => svgPath("M12 8a4 4 0 100 8 4 4 0 000-8zM4 12h2M18 12h2M12 4v2M12 18v2M6 6l1.5 1.5M16.5 16.5L18 18M6 18l1.5-1.5M16.5 7.5L18 6"),
   Shield: () => svgPath("M12 3l7 3v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3zM9 12l2 2 4-4"),

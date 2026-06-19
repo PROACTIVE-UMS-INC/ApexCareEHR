@@ -3,7 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -266,6 +266,30 @@ model EncounterCharge {
 }
 
 // -------------------------------------------------------------
+// Pharmacy directory (e-prescribe search & send)
+// -------------------------------------------------------------
+model Pharmacy {
+  id           String   @id @default(cuid())
+  ncpdpId      String?  @unique // NCPDP / NABP pharmacy identifier
+  npi          String?
+  name         String
+  network      String   @default("surescripts") // surescripts | availity | internal
+  addressLine1 String?
+  city         String?
+  state        String?
+  postalCode   String?
+  phone        String?
+  fax          String?
+  hours        String?  // e.g. "24 hours", "Mon-Fri 8a-9p"
+  services     String?  // comma list: delivery, compounding, drive-thru, specialty
+  preferred    Boolean  @default(false)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  orders       Order[]
+}
+
+// -------------------------------------------------------------
 // Orders (Rx, Lab, Imaging, Procedure)
 // -------------------------------------------------------------
 model Order {
@@ -294,10 +318,95 @@ model Order {
   rxRefills     Int?
   rxDispenseAsWritten Boolean? @default(false)
 
+  // pharmacy routing (e-prescribe)
+  pharmacyId     String?
+  pharmacy       Pharmacy?  @relation(fields: [pharmacyId], references: [id])
+  pharmacyName   String?    // denormalized for quick display
+  routingNetwork String?    // surescripts | availity | internal
+  routedAt       DateTime?
+
   // lab/imaging
   diagnosisCode String?
   resultText    String?
   resultAt      DateTime?
+}
+
+// -------------------------------------------------------------
+// Inventory & stock (pharmacy dispensary, supplies, retail)
+// -------------------------------------------------------------
+model InventoryItem {
+  id               String   @id @default(cuid())
+  sku              String   @unique
+  name             String
+  category         String   @default("supply") // medication | supply | retail | aesthetic | equipment
+  form             String?  // tablet, vial, box, unit...
+  strength         String?
+  unit             String?  @default("each")
+  quantityOnHand   Int      @default(0)
+  reorderLevel     Int      @default(0)
+  unitCostCents    Int      @default(0)
+  retailPriceCents Int      @default(0)
+  taxable          Boolean  @default(false)
+  lotNumber        String?
+  expiresAt        DateTime?
+  location         String?  // dispensary, front-retail, aesthetics-room, supply-room
+  supplier         String?
+  controlled       Boolean  @default(false)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  movements        StockMovement[]
+  saleLines        PosSaleLine[]
+}
+
+model StockMovement {
+  id          String        @id @default(cuid())
+  itemId      String
+  item        InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  type        String        // receive | adjust | dispense | sale | waste | count
+  quantity    Int           // signed delta applied to quantityOnHand
+  reason      String?
+  reference   String?       // sale number, Rx id, PO, etc.
+  actor       String?       // staff member name
+  createdAt   DateTime      @default(now())
+}
+
+// -------------------------------------------------------------
+// Point of Sale (retail checkout for products & services)
+// -------------------------------------------------------------
+model PosSale {
+  id                  String   @id @default(cuid())
+  number              String   @unique
+  status              String   @default("paid") // open | paid | refunded | void
+  cashier             String?
+  patientName         String?
+  patientId           String?
+  subtotalCents       Int      @default(0)
+  discountCents       Int      @default(0)
+  taxCents            Int      @default(0)
+  totalCents          Int      @default(0)
+  paymentMethod       String?  // cash | card | hsa-fsa | on-account
+  amountTenderedCents Int      @default(0)
+  changeCents         Int      @default(0)
+  note                String?
+  createdAt           DateTime @default(now())
+
+  lines               PosSaleLine[]
+}
+
+model PosSaleLine {
+  id             String         @id @default(cuid())
+  saleId         String
+  sale           PosSale        @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  itemId         String?
+  item           InventoryItem? @relation(fields: [itemId], references: [id])
+  kind           String         @default("product") // product | service
+  sku            String?
+  description    String
+  qty            Int            @default(1)
+  unitPriceCents Int            @default(0)
+  lineTotalCents Int            @default(0)
 }
 
 // -------------------------------------------------------------
