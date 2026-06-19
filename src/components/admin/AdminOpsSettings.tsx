@@ -284,7 +284,8 @@ export default function AdminOpsSettings({
       </div>
 
       <div className="card card-pad space-y-3">
-        <h2 className="font-semibold">External Integrations and Automation</h2>
+        <h2 className="font-semibold">Integration Feature Flags</h2>
+        <p className="text-xs text-slate-500">Toggle whether each integration influences module workflows. Vendor selection, credentials, and connection testing are configured in External Integrations and Automation below.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
           <label className="inline-flex items-center gap-2"><input type="checkbox" checked={modules.integrations.labcorpOutbound} onChange={(e) => setModules((v) => ({ ...v, integrations: { ...v.integrations, labcorpOutbound: e.target.checked } }))} /> Labcorp outbound routing</label>
           <label className="inline-flex items-center gap-2"><input type="checkbox" checked={modules.integrations.availityEligibility} onChange={(e) => setModules((v) => ({ ...v, integrations: { ...v.integrations, availityEligibility: e.target.checked } }))} /> Availity eligibility checks</label>
